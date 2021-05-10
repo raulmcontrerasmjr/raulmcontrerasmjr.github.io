@@ -2,7 +2,8 @@
 title: "Pride: First Gen"
 author: "Raul Contreras"
 date: 2021-05-9
-categories: ["R", "python"]
+hiderelated: True
+hidediscus: True
 ---
 
 ```{r setup, include=FALSE}

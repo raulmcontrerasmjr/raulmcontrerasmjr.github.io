@@ -1,0 +1,27 @@
+---
+title: 'Pride: First Gen'
+author: 'Raul Contreras'
+date: '2021-05-09'
+hiderelated: True
+hidediscus: True
+---
+# Proud First Gen Student
+
+I will be graduating this may with a BSA in biology as a first generation student! Below I will be using the reticulate package to code in both R and python.
+
+
+```{R}
+library(reticulate)
+This_year_was_awful <- "I am a"
+Senior_year_was <- "I am so very greatful to"
+```
+
+```{python}
+I_cannot_believe_I_surived = "proud first generation student!"
+absolutely_insane = "all my friends and family who helped me along the way!"
+print(r.This_year_was_awful, I_cannot_believe_I_surived)
+```
+
+```{R}
+cat(c(Senior_year_was,py$absolutely_insane))
+```

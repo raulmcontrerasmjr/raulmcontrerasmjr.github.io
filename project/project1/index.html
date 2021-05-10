@@ -1,0 +1,8255 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Raul Contreras" />
+    
+    <link rel="shortcut icon" type="image/x-icon" href="../../img/favicon.ico">
+    <title>Project 1: Exploratory Data Analysis</title>
+    <meta name="generator" content="Hugo 0.83.1" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../../css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="../../"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="../../post/">BLOG</a></li>
+        
+        <li><a href="../../projects/">PROJECTS</a></li>
+        
+        <li><a href="../../resume/">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="../../project/project1/">Project 1: Exploratory Data Analysis</a></strong>
+          </h3>
+        </div>
+ 
+<div class="blog-title">
+          <h4>
+         January 1, 0001 
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+<script src="../../rmarkdown-libs/kePrint/kePrint.js"></script>
+<link href="../../rmarkdown-libs/lightable/lightable.css" rel="stylesheet" />
+
+
+<div id="introduction" class="section level2">
+<h2>0. Introduction</h2>
+<p>Three datasets were used for this project. Two datasets are both from a Global Burden of Disease study. The data titled “deathprop,” is the probability of death based off of region and year including shocks. Shocks are estimates include deaths from natural disasters, wars, etc. The “noshocks,” dataset includes the death probability estimates without deaths from these shocks. Both of these datasets include variables on year, state, value, upper, and lower. The upper and lower variables designate an upper and lower probability of death, similar to how error bars on a graph would work. The “unemploy,” dataset contains unemployment rates for states over time and also has a variable for the region is state is located in. The main values here of probability of death are caluclated based off of many other variables for each region assessed by the Global Burden of Disease. This data is interesting to me because health data can have a large number of correlations with other factors such as unemployment rate. As someone who wants to go into the health field, seeing this trends is important. I predict a postive correlation with unemployment rates and probability of death.</p>
+</div>
+<div id="tidying-rearranging-widelong" class="section level2">
+<h2>1. Tidying: Rearranging Wide/Long</h2>
+<p>The dataset unemploy was pivoted longer in order to get the years into a column, and the column unemployment_rate was created from this pivot. This was done in order to match the other two datasets “noshocks,” and “deathprop,” that had year as a column.</p>
+<pre class="r"><code>library(tidyverse)
+library(dplyr)
+library(readxl)
+library(datasets)
+library(kableExtra)
+noshocks &lt;- read_excel(&quot;noshocks.xlsx&quot;)
+unemploy &lt;- read_excel(&quot;unemploy.xlsx&quot;)
+deathprop &lt;- read_excel(&quot;deathprop.xlsx&quot;)
+unemploy2 &lt;- unemploy %&gt;% pivot_longer(c(&quot;2011&quot;:&quot;2021&quot;), names_to = &quot;year&quot;, 
+    values_to = &quot;unemployment_rate&quot;)
+Noshocks &lt;- noshocks %&gt;% select(location.no = location_name, 
+    year.no = year_id, val.no = val, upper.no = upper, lower.no = lower)</code></pre>
+</div>
+<div id="joiningmerging" class="section level2">
+<h2>2. Joining/Merging</h2>
+<p>A full join was done on all three datasets, this was chosen because all columns were wanted from both datasets. This caused the problem of NAs, however this was fixed using the na.omit() function. The rows that were ommitted were from the dataset “unemploy” in which the years 2020 and 2021 were used, however these years did not appear in the other two data sets.</p>
+<pre class="r"><code>unemploy2$year &lt;- as.numeric(as.character(unemploy2$year))
+datas &lt;- full_join(unemploy2, deathprop, by = c(year = &quot;year_id&quot;, 
+    State = &quot;location_name&quot;))
+Datas &lt;- full_join(datas, Noshocks, by = c(year = &quot;year.no&quot;, 
+    State = &quot;location.no&quot;))
+Datas &lt;- Datas %&gt;% na.omit()</code></pre>
+</div>
+<div id="wrangling" class="section level2">
+<h2>3. Wrangling</h2>
+<div id="us-stats-2011-2019" class="section level4">
+<h4>US Stats 2011-2019</h4>
+<pre class="r"><code>Datas &lt;- Datas %&gt;% mutate(val.shocks = val - val.no)
+Datas %&gt;% group_by(year) %&gt;% summarize_at(vars(unemployment_rate:val.shocks), 
+    mean) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F) %&gt;% 
+    scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+year
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+unemployment_rate
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+upper
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+lower
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+upper.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+lower.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.shocks
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.331373
+</td>
+<td style="text-align:right;">
+0.1089158
+</td>
+<td style="text-align:right;">
+0.1113962
+</td>
+<td style="text-align:right;">
+0.1065212
+</td>
+<td style="text-align:right;">
+0.1086795
+</td>
+<td style="text-align:right;">
+0.1111605
+</td>
+<td style="text-align:right;">
+0.1062882
+</td>
+<td style="text-align:right;">
+0.0002363
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2012
+</td>
+<td style="text-align:right;">
+7.472549
+</td>
+<td style="text-align:right;">
+0.1087561
+</td>
+<td style="text-align:right;">
+0.1112222
+</td>
+<td style="text-align:right;">
+0.1063467
+</td>
+<td style="text-align:right;">
+0.1086635
+</td>
+<td style="text-align:right;">
+0.1111297
+</td>
+<td style="text-align:right;">
+0.1062544
+</td>
+<td style="text-align:right;">
+0.0000926
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:right;">
+7.037255
+</td>
+<td style="text-align:right;">
+0.1091736
+</td>
+<td style="text-align:right;">
+0.1116469
+</td>
+<td style="text-align:right;">
+0.1067602
+</td>
+<td style="text-align:right;">
+0.1089790
+</td>
+<td style="text-align:right;">
+0.1114523
+</td>
+<td style="text-align:right;">
+0.1065640
+</td>
+<td style="text-align:right;">
+0.0001946
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:right;">
+6.090196
+</td>
+<td style="text-align:right;">
+0.1104305
+</td>
+<td style="text-align:right;">
+0.1129312
+</td>
+<td style="text-align:right;">
+0.1079904
+</td>
+<td style="text-align:right;">
+0.1103177
+</td>
+<td style="text-align:right;">
+0.1128183
+</td>
+<td style="text-align:right;">
+0.1078773
+</td>
+<td style="text-align:right;">
+0.0001128
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2015
+</td>
+<td style="text-align:right;">
+5.225490
+</td>
+<td style="text-align:right;">
+0.1125757
+</td>
+<td style="text-align:right;">
+0.1151180
+</td>
+<td style="text-align:right;">
+0.1100806
+</td>
+<td style="text-align:right;">
+0.1124307
+</td>
+<td style="text-align:right;">
+0.1149729
+</td>
+<td style="text-align:right;">
+0.1099354
+</td>
+<td style="text-align:right;">
+0.0001450
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2016
+</td>
+<td style="text-align:right;">
+4.731372
+</td>
+<td style="text-align:right;">
+0.1149125
+</td>
+<td style="text-align:right;">
+0.1176756
+</td>
+<td style="text-align:right;">
+0.1122164
+</td>
+<td style="text-align:right;">
+0.1147301
+</td>
+<td style="text-align:right;">
+0.1174932
+</td>
+<td style="text-align:right;">
+0.1120343
+</td>
+<td style="text-align:right;">
+0.0001824
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2017
+</td>
+<td style="text-align:right;">
+4.349020
+</td>
+<td style="text-align:right;">
+0.1141975
+</td>
+<td style="text-align:right;">
+0.1248712
+</td>
+<td style="text-align:right;">
+0.1040520
+</td>
+<td style="text-align:right;">
+0.1141411
+</td>
+<td style="text-align:right;">
+0.1248153
+</td>
+<td style="text-align:right;">
+0.1039948
+</td>
+<td style="text-align:right;">
+0.0000564
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2018
+</td>
+<td style="text-align:right;">
+3.896078
+</td>
+<td style="text-align:right;">
+0.1133496
+</td>
+<td style="text-align:right;">
+0.1296404
+</td>
+<td style="text-align:right;">
+0.0983940
+</td>
+<td style="text-align:right;">
+0.1133135
+</td>
+<td style="text-align:right;">
+0.1296051
+</td>
+<td style="text-align:right;">
+0.0983575
+</td>
+<td style="text-align:right;">
+0.0000362
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.684314
+</td>
+<td style="text-align:right;">
+0.1126131
+</td>
+<td style="text-align:right;">
+0.1323905
+</td>
+<td style="text-align:right;">
+0.0949270
+</td>
+<td style="text-align:right;">
+0.1125896
+</td>
+<td style="text-align:right;">
+0.1323675
+</td>
+<td style="text-align:right;">
+0.0949027
+</td>
+<td style="text-align:right;">
+0.0000234
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>This above table takes the average of each numeric variable for each state and groups by year. This returns statistics of the entire US.</p>
+</div>
+<div id="us-stats-in-the-year-2019" class="section level4">
+<h4>US Stats in the year 2019</h4>
+<pre class="r"><code>Datas %&gt;% filter(year == 2019) %&gt;% summarize_at(vars(unemployment_rate:val.shocks), 
+    quantile) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F) %&gt;% 
+    scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+unemployment_rate
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+upper
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+lower
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+upper.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+lower.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.shocks
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2.20
+</td>
+<td style="text-align:right;">
+0.0791839
+</td>
+<td style="text-align:right;">
+0.0951944
+</td>
+<td style="text-align:right;">
+0.0648457
+</td>
+<td style="text-align:right;">
+0.0791792
+</td>
+<td style="text-align:right;">
+0.0951896
+</td>
+<td style="text-align:right;">
+0.0648411
+</td>
+<td style="text-align:right;">
+4.30e-06
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+3.15
+</td>
+<td style="text-align:right;">
+0.0958197
+</td>
+<td style="text-align:right;">
+0.1136239
+</td>
+<td style="text-align:right;">
+0.0804629
+</td>
+<td style="text-align:right;">
+0.0958152
+</td>
+<td style="text-align:right;">
+0.1136077
+</td>
+<td style="text-align:right;">
+0.0804579
+</td>
+<td style="text-align:right;">
+4.50e-06
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+3.60
+</td>
+<td style="text-align:right;">
+0.1096398
+</td>
+<td style="text-align:right;">
+0.1280464
+</td>
+<td style="text-align:right;">
+0.0922141
+</td>
+<td style="text-align:right;">
+0.1096352
+</td>
+<td style="text-align:right;">
+0.1278181
+</td>
+<td style="text-align:right;">
+0.0922095
+</td>
+<td style="text-align:right;">
+4.60e-06
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+4.20
+</td>
+<td style="text-align:right;">
+0.1241349
+</td>
+<td style="text-align:right;">
+0.1471331
+</td>
+<td style="text-align:right;">
+0.1048907
+</td>
+<td style="text-align:right;">
+0.1241177
+</td>
+<td style="text-align:right;">
+0.1471166
+</td>
+<td style="text-align:right;">
+0.1048725
+</td>
+<td style="text-align:right;">
+2.67e-05
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+5.80
+</td>
+<td style="text-align:right;">
+0.1612593
+</td>
+<td style="text-align:right;">
+0.1901149
+</td>
+<td style="text-align:right;">
+0.1358025
+</td>
+<td style="text-align:right;">
+0.1612549
+</td>
+<td style="text-align:right;">
+0.1901103
+</td>
+<td style="text-align:right;">
+0.1357980
+</td>
+<td style="text-align:right;">
+5.32e-04
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>Datas %&gt;% filter(year == 2019) %&gt;% summarize_at(vars(unemployment_rate:val.shocks), 
+    sd) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F)</code></pre>
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:right;">
+unemployment_rate
+</th>
+<th style="text-align:right;">
+val
+</th>
+<th style="text-align:right;">
+upper
+</th>
+<th style="text-align:right;">
+lower
+</th>
+<th style="text-align:right;">
+val.no
+</th>
+<th style="text-align:right;">
+upper.no
+</th>
+<th style="text-align:right;">
+lower.no
+</th>
+<th style="text-align:right;">
+val.shocks
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0.83651
+</td>
+<td style="text-align:right;">
+0.0216814
+</td>
+<td style="text-align:right;">
+0.0251669
+</td>
+<td style="text-align:right;">
+0.0185355
+</td>
+<td style="text-align:right;">
+0.0216835
+</td>
+<td style="text-align:right;">
+0.0251698
+</td>
+<td style="text-align:right;">
+0.0185359
+</td>
+<td style="text-align:right;">
+7.43e-05
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="stats-by-state" class="section level4">
+<h4>Stats by State</h4>
+<pre class="r"><code>Datas %&gt;% group_by(State) %&gt;% summarize_at(vars(unemployment_rate:val.shocks), 
+    mean) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F) %&gt;% 
+    scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+State
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+unemployment_rate
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+upper
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+lower
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+upper.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+lower.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.shocks
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Alabama
+</td>
+<td style="text-align:right;">
+6.444444
+</td>
+<td style="text-align:right;">
+0.1507426
+</td>
+<td style="text-align:right;">
+0.1592142
+</td>
+<td style="text-align:right;">
+0.1425852
+</td>
+<td style="text-align:right;">
+0.1504564
+</td>
+<td style="text-align:right;">
+0.1589295
+</td>
+<td style="text-align:right;">
+0.1423117
+</td>
+<td style="text-align:right;">
+0.0002862
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Alaska
+</td>
+<td style="text-align:right;">
+6.722222
+</td>
+<td style="text-align:right;">
+0.1178502
+</td>
+<td style="text-align:right;">
+0.1248165
+</td>
+<td style="text-align:right;">
+0.1112949
+</td>
+<td style="text-align:right;">
+0.1174736
+</td>
+<td style="text-align:right;">
+0.1244424
+</td>
+<td style="text-align:right;">
+0.1109190
+</td>
+<td style="text-align:right;">
+0.0003766
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arizona
+</td>
+<td style="text-align:right;">
+6.722222
+</td>
+<td style="text-align:right;">
+0.1086540
+</td>
+<td style="text-align:right;">
+0.1152268
+</td>
+<td style="text-align:right;">
+0.1027069
+</td>
+<td style="text-align:right;">
+0.1085570
+</td>
+<td style="text-align:right;">
+0.1151324
+</td>
+<td style="text-align:right;">
+0.1026107
+</td>
+<td style="text-align:right;">
+0.0000970
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arkansas
+</td>
+<td style="text-align:right;">
+5.488889
+</td>
+<td style="text-align:right;">
+0.1458483
+</td>
+<td style="text-align:right;">
+0.1547075
+</td>
+<td style="text-align:right;">
+0.1375485
+</td>
+<td style="text-align:right;">
+0.1457204
+</td>
+<td style="text-align:right;">
+0.1545823
+</td>
+<td style="text-align:right;">
+0.1374212
+</td>
+<td style="text-align:right;">
+0.0001280
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+California
+</td>
+<td style="text-align:right;">
+7.444444
+</td>
+<td style="text-align:right;">
+0.0848648
+</td>
+<td style="text-align:right;">
+0.0891776
+</td>
+<td style="text-align:right;">
+0.0807960
+</td>
+<td style="text-align:right;">
+0.0848067
+</td>
+<td style="text-align:right;">
+0.0891187
+</td>
+<td style="text-align:right;">
+0.0807383
+</td>
+<td style="text-align:right;">
+0.0000581
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Colorado
+</td>
+<td style="text-align:right;">
+5.100000
+</td>
+<td style="text-align:right;">
+0.0943960
+</td>
+<td style="text-align:right;">
+0.1005208
+</td>
+<td style="text-align:right;">
+0.0886555
+</td>
+<td style="text-align:right;">
+0.0943022
+</td>
+<td style="text-align:right;">
+0.1004270
+</td>
+<td style="text-align:right;">
+0.0885606
+</td>
+<td style="text-align:right;">
+0.0000938
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Connecticut
+</td>
+<td style="text-align:right;">
+6.288889
+</td>
+<td style="text-align:right;">
+0.0834108
+</td>
+<td style="text-align:right;">
+0.0891754
+</td>
+<td style="text-align:right;">
+0.0780133
+</td>
+<td style="text-align:right;">
+0.0833338
+</td>
+<td style="text-align:right;">
+0.0890990
+</td>
+<td style="text-align:right;">
+0.0779376
+</td>
+<td style="text-align:right;">
+0.0000770
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Delaware
+</td>
+<td style="text-align:right;">
+5.488889
+</td>
+<td style="text-align:right;">
+0.1147857
+</td>
+<td style="text-align:right;">
+0.1216124
+</td>
+<td style="text-align:right;">
+0.1084968
+</td>
+<td style="text-align:right;">
+0.1146435
+</td>
+<td style="text-align:right;">
+0.1214750
+</td>
+<td style="text-align:right;">
+0.1083540
+</td>
+<td style="text-align:right;">
+0.0001422
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+District of Columbia
+</td>
+<td style="text-align:right;">
+7.500000
+</td>
+<td style="text-align:right;">
+0.1396328
+</td>
+<td style="text-align:right;">
+0.1497035
+</td>
+<td style="text-align:right;">
+0.1301749
+</td>
+<td style="text-align:right;">
+0.1395533
+</td>
+<td style="text-align:right;">
+0.1496226
+</td>
+<td style="text-align:right;">
+0.1300948
+</td>
+<td style="text-align:right;">
+0.0000795
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Florida
+</td>
+<td style="text-align:right;">
+6.333333
+</td>
+<td style="text-align:right;">
+0.1123801
+</td>
+<td style="text-align:right;">
+0.1184287
+</td>
+<td style="text-align:right;">
+0.1069413
+</td>
+<td style="text-align:right;">
+0.1123079
+</td>
+<td style="text-align:right;">
+0.1183561
+</td>
+<td style="text-align:right;">
+0.1068703
+</td>
+<td style="text-align:right;">
+0.0000722
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Georgia
+</td>
+<td style="text-align:right;">
+6.788889
+</td>
+<td style="text-align:right;">
+0.1176429
+</td>
+<td style="text-align:right;">
+0.1241059
+</td>
+<td style="text-align:right;">
+0.1117072
+</td>
+<td style="text-align:right;">
+0.1175110
+</td>
+<td style="text-align:right;">
+0.1239729
+</td>
+<td style="text-align:right;">
+0.1115734
+</td>
+<td style="text-align:right;">
+0.0001319
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hawaii
+</td>
+<td style="text-align:right;">
+4.077778
+</td>
+<td style="text-align:right;">
+0.0877098
+</td>
+<td style="text-align:right;">
+0.0939855
+</td>
+<td style="text-align:right;">
+0.0818835
+</td>
+<td style="text-align:right;">
+0.0876403
+</td>
+<td style="text-align:right;">
+0.0939152
+</td>
+<td style="text-align:right;">
+0.0818138
+</td>
+<td style="text-align:right;">
+0.0000695
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Idaho
+</td>
+<td style="text-align:right;">
+5.011111
+</td>
+<td style="text-align:right;">
+0.0970074
+</td>
+<td style="text-align:right;">
+0.1037022
+</td>
+<td style="text-align:right;">
+0.0906823
+</td>
+<td style="text-align:right;">
+0.0968775
+</td>
+<td style="text-align:right;">
+0.1035704
+</td>
+<td style="text-align:right;">
+0.0905505
+</td>
+<td style="text-align:right;">
+0.0001298
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Illinois
+</td>
+<td style="text-align:right;">
+6.933333
+</td>
+<td style="text-align:right;">
+0.0989983
+</td>
+<td style="text-align:right;">
+0.1047949
+</td>
+<td style="text-align:right;">
+0.0937359
+</td>
+<td style="text-align:right;">
+0.0989292
+</td>
+<td style="text-align:right;">
+0.1047265
+</td>
+<td style="text-align:right;">
+0.0936659
+</td>
+<td style="text-align:right;">
+0.0000692
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Indiana
+</td>
+<td style="text-align:right;">
+5.766667
+</td>
+<td style="text-align:right;">
+0.1225940
+</td>
+<td style="text-align:right;">
+0.1300237
+</td>
+<td style="text-align:right;">
+0.1158651
+</td>
+<td style="text-align:right;">
+0.1225255
+</td>
+<td style="text-align:right;">
+0.1299536
+</td>
+<td style="text-align:right;">
+0.1157968
+</td>
+<td style="text-align:right;">
+0.0000685
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Iowa
+</td>
+<td style="text-align:right;">
+4.044444
+</td>
+<td style="text-align:right;">
+0.0959939
+</td>
+<td style="text-align:right;">
+0.1027669
+</td>
+<td style="text-align:right;">
+0.0898587
+</td>
+<td style="text-align:right;">
+0.0958874
+</td>
+<td style="text-align:right;">
+0.1026616
+</td>
+<td style="text-align:right;">
+0.0897531
+</td>
+<td style="text-align:right;">
+0.0001065
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kansas
+</td>
+<td style="text-align:right;">
+4.622222
+</td>
+<td style="text-align:right;">
+0.1052186
+</td>
+<td style="text-align:right;">
+0.1122361
+</td>
+<td style="text-align:right;">
+0.0986218
+</td>
+<td style="text-align:right;">
+0.1051052
+</td>
+<td style="text-align:right;">
+0.1121249
+</td>
+<td style="text-align:right;">
+0.0985091
+</td>
+<td style="text-align:right;">
+0.0001134
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kentucky
+</td>
+<td style="text-align:right;">
+6.344444
+</td>
+<td style="text-align:right;">
+0.1487110
+</td>
+<td style="text-align:right;">
+0.1572553
+</td>
+<td style="text-align:right;">
+0.1405331
+</td>
+<td style="text-align:right;">
+0.1485253
+</td>
+<td style="text-align:right;">
+0.1570705
+</td>
+<td style="text-align:right;">
+0.1403465
+</td>
+<td style="text-align:right;">
+0.0001857
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Louisiana
+</td>
+<td style="text-align:right;">
+6.111111
+</td>
+<td style="text-align:right;">
+0.1484803
+</td>
+<td style="text-align:right;">
+0.1569334
+</td>
+<td style="text-align:right;">
+0.1404728
+</td>
+<td style="text-align:right;">
+0.1483685
+</td>
+<td style="text-align:right;">
+0.1568220
+</td>
+<td style="text-align:right;">
+0.1403603
+</td>
+<td style="text-align:right;">
+0.0001118
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maine
+</td>
+<td style="text-align:right;">
+5.111111
+</td>
+<td style="text-align:right;">
+0.1021912
+</td>
+<td style="text-align:right;">
+0.1097555
+</td>
+<td style="text-align:right;">
+0.0953198
+</td>
+<td style="text-align:right;">
+0.1020975
+</td>
+<td style="text-align:right;">
+0.1096572
+</td>
+<td style="text-align:right;">
+0.0952268
+</td>
+<td style="text-align:right;">
+0.0000937
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maryland
+</td>
+<td style="text-align:right;">
+5.388889
+</td>
+<td style="text-align:right;">
+0.1050020
+</td>
+<td style="text-align:right;">
+0.1114048
+</td>
+<td style="text-align:right;">
+0.0988299
+</td>
+<td style="text-align:right;">
+0.1049177
+</td>
+<td style="text-align:right;">
+0.1113212
+</td>
+<td style="text-align:right;">
+0.0987477
+</td>
+<td style="text-align:right;">
+0.0000843
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Massachusetts
+</td>
+<td style="text-align:right;">
+5.233333
+</td>
+<td style="text-align:right;">
+0.0889713
+</td>
+<td style="text-align:right;">
+0.0947024
+</td>
+<td style="text-align:right;">
+0.0837832
+</td>
+<td style="text-align:right;">
+0.0888913
+</td>
+<td style="text-align:right;">
+0.0946214
+</td>
+<td style="text-align:right;">
+0.0837041
+</td>
+<td style="text-align:right;">
+0.0000800
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Michigan
+</td>
+<td style="text-align:right;">
+6.733333
+</td>
+<td style="text-align:right;">
+0.1162114
+</td>
+<td style="text-align:right;">
+0.1226837
+</td>
+<td style="text-align:right;">
+0.1099967
+</td>
+<td style="text-align:right;">
+0.1161498
+</td>
+<td style="text-align:right;">
+0.1226239
+</td>
+<td style="text-align:right;">
+0.1099354
+</td>
+<td style="text-align:right;">
+0.0000616
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minnesota
+</td>
+<td style="text-align:right;">
+4.444444
+</td>
+<td style="text-align:right;">
+0.0790679
+</td>
+<td style="text-align:right;">
+0.0843693
+</td>
+<td style="text-align:right;">
+0.0741128
+</td>
+<td style="text-align:right;">
+0.0790249
+</td>
+<td style="text-align:right;">
+0.0843265
+</td>
+<td style="text-align:right;">
+0.0740699
+</td>
+<td style="text-align:right;">
+0.0000430
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Mississippi
+</td>
+<td style="text-align:right;">
+7.133333
+</td>
+<td style="text-align:right;">
+0.1598904
+</td>
+<td style="text-align:right;">
+0.1691031
+</td>
+<td style="text-align:right;">
+0.1511425
+</td>
+<td style="text-align:right;">
+0.1596958
+</td>
+<td style="text-align:right;">
+0.1689065
+</td>
+<td style="text-align:right;">
+0.1509452
+</td>
+<td style="text-align:right;">
+0.0001946
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Missouri
+</td>
+<td style="text-align:right;">
+5.644444
+</td>
+<td style="text-align:right;">
+0.1235683
+</td>
+<td style="text-align:right;">
+0.1310588
+</td>
+<td style="text-align:right;">
+0.1169383
+</td>
+<td style="text-align:right;">
+0.1233395
+</td>
+<td style="text-align:right;">
+0.1308288
+</td>
+<td style="text-align:right;">
+0.1167116
+</td>
+<td style="text-align:right;">
+0.0002288
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Montana
+</td>
+<td style="text-align:right;">
+4.844444
+</td>
+<td style="text-align:right;">
+0.1152485
+</td>
+<td style="text-align:right;">
+0.1235043
+</td>
+<td style="text-align:right;">
+0.1075659
+</td>
+<td style="text-align:right;">
+0.1150432
+</td>
+<td style="text-align:right;">
+0.1233020
+</td>
+<td style="text-align:right;">
+0.1073557
+</td>
+<td style="text-align:right;">
+0.0002054
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nebraska
+</td>
+<td style="text-align:right;">
+3.411111
+</td>
+<td style="text-align:right;">
+0.0922092
+</td>
+<td style="text-align:right;">
+0.0984827
+</td>
+<td style="text-align:right;">
+0.0863547
+</td>
+<td style="text-align:right;">
+0.0921125
+</td>
+<td style="text-align:right;">
+0.0983870
+</td>
+<td style="text-align:right;">
+0.0862592
+</td>
+<td style="text-align:right;">
+0.0000967
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nevada
+</td>
+<td style="text-align:right;">
+8.066667
+</td>
+<td style="text-align:right;">
+0.1115195
+</td>
+<td style="text-align:right;">
+0.1185636
+</td>
+<td style="text-align:right;">
+0.1051674
+</td>
+<td style="text-align:right;">
+0.1113227
+</td>
+<td style="text-align:right;">
+0.1183670
+</td>
+<td style="text-align:right;">
+0.1049650
+</td>
+<td style="text-align:right;">
+0.0001967
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Hampshire
+</td>
+<td style="text-align:right;">
+3.988889
+</td>
+<td style="text-align:right;">
+0.0948261
+</td>
+<td style="text-align:right;">
+0.1019741
+</td>
+<td style="text-align:right;">
+0.0881510
+</td>
+<td style="text-align:right;">
+0.0947602
+</td>
+<td style="text-align:right;">
+0.1019073
+</td>
+<td style="text-align:right;">
+0.0880843
+</td>
+<td style="text-align:right;">
+0.0000659
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Jersey
+</td>
+<td style="text-align:right;">
+6.500000
+</td>
+<td style="text-align:right;">
+0.0894257
+</td>
+<td style="text-align:right;">
+0.0950832
+</td>
+<td style="text-align:right;">
+0.0843282
+</td>
+<td style="text-align:right;">
+0.0893765
+</td>
+<td style="text-align:right;">
+0.0950329
+</td>
+<td style="text-align:right;">
+0.0842787
+</td>
+<td style="text-align:right;">
+0.0000491
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Mexico
+</td>
+<td style="text-align:right;">
+6.422222
+</td>
+<td style="text-align:right;">
+0.1323678
+</td>
+<td style="text-align:right;">
+0.1406095
+</td>
+<td style="text-align:right;">
+0.1246686
+</td>
+<td style="text-align:right;">
+0.1322887
+</td>
+<td style="text-align:right;">
+0.1405277
+</td>
+<td style="text-align:right;">
+0.1245910
+</td>
+<td style="text-align:right;">
+0.0000792
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New York
+</td>
+<td style="text-align:right;">
+6.144444
+</td>
+<td style="text-align:right;">
+0.0869243
+</td>
+<td style="text-align:right;">
+0.0918778
+</td>
+<td style="text-align:right;">
+0.0823322
+</td>
+<td style="text-align:right;">
+0.0868526
+</td>
+<td style="text-align:right;">
+0.0918057
+</td>
+<td style="text-align:right;">
+0.0822614
+</td>
+<td style="text-align:right;">
+0.0000717
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Carolina
+</td>
+<td style="text-align:right;">
+6.577778
+</td>
+<td style="text-align:right;">
+0.1150870
+</td>
+<td style="text-align:right;">
+0.1216164
+</td>
+<td style="text-align:right;">
+0.1090385
+</td>
+<td style="text-align:right;">
+0.1150046
+</td>
+<td style="text-align:right;">
+0.1215345
+</td>
+<td style="text-align:right;">
+0.1089569
+</td>
+<td style="text-align:right;">
+0.0000823
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Dakota
+</td>
+<td style="text-align:right;">
+2.833333
+</td>
+<td style="text-align:right;">
+0.1050917
+</td>
+<td style="text-align:right;">
+0.1117477
+</td>
+<td style="text-align:right;">
+0.0987023
+</td>
+<td style="text-align:right;">
+0.1048526
+</td>
+<td style="text-align:right;">
+0.1115116
+</td>
+<td style="text-align:right;">
+0.0984634
+</td>
+<td style="text-align:right;">
+0.0002391
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Ohio
+</td>
+<td style="text-align:right;">
+6.100000
+</td>
+<td style="text-align:right;">
+0.1241559
+</td>
+<td style="text-align:right;">
+0.1308217
+</td>
+<td style="text-align:right;">
+0.1178223
+</td>
+<td style="text-align:right;">
+0.1240691
+</td>
+<td style="text-align:right;">
+0.1307354
+</td>
+<td style="text-align:right;">
+0.1177357
+</td>
+<td style="text-align:right;">
+0.0000868
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oklahoma
+</td>
+<td style="text-align:right;">
+4.500000
+</td>
+<td style="text-align:right;">
+0.1471233
+</td>
+<td style="text-align:right;">
+0.1555847
+</td>
+<td style="text-align:right;">
+0.1390016
+</td>
+<td style="text-align:right;">
+0.1469805
+</td>
+<td style="text-align:right;">
+0.1554463
+</td>
+<td style="text-align:right;">
+0.1388592
+</td>
+<td style="text-align:right;">
+0.0001428
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oregon
+</td>
+<td style="text-align:right;">
+6.333333
+</td>
+<td style="text-align:right;">
+0.0977141
+</td>
+<td style="text-align:right;">
+0.1042491
+</td>
+<td style="text-align:right;">
+0.0918143
+</td>
+<td style="text-align:right;">
+0.0976111
+</td>
+<td style="text-align:right;">
+0.1041458
+</td>
+<td style="text-align:right;">
+0.0917107
+</td>
+<td style="text-align:right;">
+0.0001029
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pennsylvania
+</td>
+<td style="text-align:right;">
+6.000000
+</td>
+<td style="text-align:right;">
+0.1107127
+</td>
+<td style="text-align:right;">
+0.1171601
+</td>
+<td style="text-align:right;">
+0.1048185
+</td>
+<td style="text-align:right;">
+0.1106594
+</td>
+<td style="text-align:right;">
+0.1171070
+</td>
+<td style="text-align:right;">
+0.1047648
+</td>
+<td style="text-align:right;">
+0.0000533
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Rhode Island
+</td>
+<td style="text-align:right;">
+7.177778
+</td>
+<td style="text-align:right;">
+0.0945686
+</td>
+<td style="text-align:right;">
+0.1014771
+</td>
+<td style="text-align:right;">
+0.0879648
+</td>
+<td style="text-align:right;">
+0.0945388
+</td>
+<td style="text-align:right;">
+0.1014474
+</td>
+<td style="text-align:right;">
+0.0879353
+</td>
+<td style="text-align:right;">
+0.0000298
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Carolina
+</td>
+<td style="text-align:right;">
+6.377778
+</td>
+<td style="text-align:right;">
+0.1356092
+</td>
+<td style="text-align:right;">
+0.1436602
+</td>
+<td style="text-align:right;">
+0.1282822
+</td>
+<td style="text-align:right;">
+0.1355132
+</td>
+<td style="text-align:right;">
+0.1435635
+</td>
+<td style="text-align:right;">
+0.1281874
+</td>
+<td style="text-align:right;">
+0.0000960
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Dakota
+</td>
+<td style="text-align:right;">
+3.477778
+</td>
+<td style="text-align:right;">
+0.1076493
+</td>
+<td style="text-align:right;">
+0.1145677
+</td>
+<td style="text-align:right;">
+0.1013063
+</td>
+<td style="text-align:right;">
+0.1075057
+</td>
+<td style="text-align:right;">
+0.1144254
+</td>
+<td style="text-align:right;">
+0.1011582
+</td>
+<td style="text-align:right;">
+0.0001436
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tennessee
+</td>
+<td style="text-align:right;">
+6.055556
+</td>
+<td style="text-align:right;">
+0.1424336
+</td>
+<td style="text-align:right;">
+0.1504991
+</td>
+<td style="text-align:right;">
+0.1350425
+</td>
+<td style="text-align:right;">
+0.1422928
+</td>
+<td style="text-align:right;">
+0.1503596
+</td>
+<td style="text-align:right;">
+0.1348994
+</td>
+<td style="text-align:right;">
+0.0001408
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Texas
+</td>
+<td style="text-align:right;">
+5.400000
+</td>
+<td style="text-align:right;">
+0.1059036
+</td>
+<td style="text-align:right;">
+0.1111667
+</td>
+<td style="text-align:right;">
+0.1008323
+</td>
+<td style="text-align:right;">
+0.1058324
+</td>
+<td style="text-align:right;">
+0.1110957
+</td>
+<td style="text-align:right;">
+0.1007614
+</td>
+<td style="text-align:right;">
+0.0000712
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Utah
+</td>
+<td style="text-align:right;">
+4.044444
+</td>
+<td style="text-align:right;">
+0.0951759
+</td>
+<td style="text-align:right;">
+0.1014340
+</td>
+<td style="text-align:right;">
+0.0895890
+</td>
+<td style="text-align:right;">
+0.0950833
+</td>
+<td style="text-align:right;">
+0.1013389
+</td>
+<td style="text-align:right;">
+0.0894950
+</td>
+<td style="text-align:right;">
+0.0000926
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Vermont
+</td>
+<td style="text-align:right;">
+3.855556
+</td>
+<td style="text-align:right;">
+0.0906689
+</td>
+<td style="text-align:right;">
+0.0961417
+</td>
+<td style="text-align:right;">
+0.0855137
+</td>
+<td style="text-align:right;">
+0.0903323
+</td>
+<td style="text-align:right;">
+0.0958075
+</td>
+<td style="text-align:right;">
+0.0851699
+</td>
+<td style="text-align:right;">
+0.0003366
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Virginia
+</td>
+<td style="text-align:right;">
+4.688889
+</td>
+<td style="text-align:right;">
+0.0969198
+</td>
+<td style="text-align:right;">
+0.1027210
+</td>
+<td style="text-align:right;">
+0.0914438
+</td>
+<td style="text-align:right;">
+0.0968337
+</td>
+<td style="text-align:right;">
+0.1026403
+</td>
+<td style="text-align:right;">
+0.0913589
+</td>
+<td style="text-align:right;">
+0.0000861
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Washington
+</td>
+<td style="text-align:right;">
+6.000000
+</td>
+<td style="text-align:right;">
+0.0888997
+</td>
+<td style="text-align:right;">
+0.0944079
+</td>
+<td style="text-align:right;">
+0.0838869
+</td>
+<td style="text-align:right;">
+0.0888020
+</td>
+<td style="text-align:right;">
+0.0943112
+</td>
+<td style="text-align:right;">
+0.0837922
+</td>
+<td style="text-align:right;">
+0.0000977
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+West Virginia
+</td>
+<td style="text-align:right;">
+6.377778
+</td>
+<td style="text-align:right;">
+0.1584753
+</td>
+<td style="text-align:right;">
+0.1685335
+</td>
+<td style="text-align:right;">
+0.1489224
+</td>
+<td style="text-align:right;">
+0.1583830
+</td>
+<td style="text-align:right;">
+0.1684414
+</td>
+<td style="text-align:right;">
+0.1488303
+</td>
+<td style="text-align:right;">
+0.0000923
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wisconsin
+</td>
+<td style="text-align:right;">
+5.077778
+</td>
+<td style="text-align:right;">
+0.0937350
+</td>
+<td style="text-align:right;">
+0.0997121
+</td>
+<td style="text-align:right;">
+0.0883307
+</td>
+<td style="text-align:right;">
+0.0936891
+</td>
+<td style="text-align:right;">
+0.0996657
+</td>
+<td style="text-align:right;">
+0.0882845
+</td>
+<td style="text-align:right;">
+0.0000460
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wyoming
+</td>
+<td style="text-align:right;">
+4.788889
+</td>
+<td style="text-align:right;">
+0.1123026
+</td>
+<td style="text-align:right;">
+0.1186618
+</td>
+<td style="text-align:right;">
+0.1063912
+</td>
+<td style="text-align:right;">
+0.1120713
+</td>
+<td style="text-align:right;">
+0.1184227
+</td>
+<td style="text-align:right;">
+0.1061617
+</td>
+<td style="text-align:right;">
+0.0002312
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>Datas %&gt;% group_by(State) %&gt;% summarize(mean_val = mean(val)) %&gt;% 
+    arrange(desc(mean_val)) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, 
+    full_width = F) %&gt;% scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+State
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+mean_val
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Mississippi
+</td>
+<td style="text-align:right;">
+0.1598904
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+West Virginia
+</td>
+<td style="text-align:right;">
+0.1584753
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Alabama
+</td>
+<td style="text-align:right;">
+0.1507426
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kentucky
+</td>
+<td style="text-align:right;">
+0.1487110
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Louisiana
+</td>
+<td style="text-align:right;">
+0.1484803
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oklahoma
+</td>
+<td style="text-align:right;">
+0.1471233
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arkansas
+</td>
+<td style="text-align:right;">
+0.1458483
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tennessee
+</td>
+<td style="text-align:right;">
+0.1424336
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+District of Columbia
+</td>
+<td style="text-align:right;">
+0.1396328
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Carolina
+</td>
+<td style="text-align:right;">
+0.1356092
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Mexico
+</td>
+<td style="text-align:right;">
+0.1323678
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Ohio
+</td>
+<td style="text-align:right;">
+0.1241559
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Missouri
+</td>
+<td style="text-align:right;">
+0.1235683
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Indiana
+</td>
+<td style="text-align:right;">
+0.1225940
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Alaska
+</td>
+<td style="text-align:right;">
+0.1178502
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Georgia
+</td>
+<td style="text-align:right;">
+0.1176429
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Michigan
+</td>
+<td style="text-align:right;">
+0.1162114
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Montana
+</td>
+<td style="text-align:right;">
+0.1152485
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Carolina
+</td>
+<td style="text-align:right;">
+0.1150870
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Delaware
+</td>
+<td style="text-align:right;">
+0.1147857
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Florida
+</td>
+<td style="text-align:right;">
+0.1123801
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wyoming
+</td>
+<td style="text-align:right;">
+0.1123026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nevada
+</td>
+<td style="text-align:right;">
+0.1115195
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pennsylvania
+</td>
+<td style="text-align:right;">
+0.1107127
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arizona
+</td>
+<td style="text-align:right;">
+0.1086540
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Dakota
+</td>
+<td style="text-align:right;">
+0.1076493
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Texas
+</td>
+<td style="text-align:right;">
+0.1059036
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kansas
+</td>
+<td style="text-align:right;">
+0.1052186
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Dakota
+</td>
+<td style="text-align:right;">
+0.1050917
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maryland
+</td>
+<td style="text-align:right;">
+0.1050020
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maine
+</td>
+<td style="text-align:right;">
+0.1021912
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Illinois
+</td>
+<td style="text-align:right;">
+0.0989983
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oregon
+</td>
+<td style="text-align:right;">
+0.0977141
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Idaho
+</td>
+<td style="text-align:right;">
+0.0970074
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Virginia
+</td>
+<td style="text-align:right;">
+0.0969198
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Iowa
+</td>
+<td style="text-align:right;">
+0.0959939
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Utah
+</td>
+<td style="text-align:right;">
+0.0951759
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Hampshire
+</td>
+<td style="text-align:right;">
+0.0948261
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Rhode Island
+</td>
+<td style="text-align:right;">
+0.0945686
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Colorado
+</td>
+<td style="text-align:right;">
+0.0943960
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wisconsin
+</td>
+<td style="text-align:right;">
+0.0937350
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nebraska
+</td>
+<td style="text-align:right;">
+0.0922092
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Vermont
+</td>
+<td style="text-align:right;">
+0.0906689
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Jersey
+</td>
+<td style="text-align:right;">
+0.0894257
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Massachusetts
+</td>
+<td style="text-align:right;">
+0.0889713
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Washington
+</td>
+<td style="text-align:right;">
+0.0888997
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hawaii
+</td>
+<td style="text-align:right;">
+0.0877098
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New York
+</td>
+<td style="text-align:right;">
+0.0869243
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+California
+</td>
+<td style="text-align:right;">
+0.0848648
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Connecticut
+</td>
+<td style="text-align:right;">
+0.0834108
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minnesota
+</td>
+<td style="text-align:right;">
+0.0790679
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>Datas %&gt;% group_by(State) %&gt;% summarize(mean_val = mean(val)) %&gt;% 
+    slice_min(mean_val, n = 5) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, 
+    full_width = F) %&gt;% scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+State
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+mean_val
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Minnesota
+</td>
+<td style="text-align:right;">
+0.0790679
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Connecticut
+</td>
+<td style="text-align:right;">
+0.0834108
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+California
+</td>
+<td style="text-align:right;">
+0.0848648
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New York
+</td>
+<td style="text-align:right;">
+0.0869243
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hawaii
+</td>
+<td style="text-align:right;">
+0.0877098
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>Datas %&gt;% group_by(State) %&gt;% summarize(max_unemployment = max(unemployment_rate), 
+    max_val = min(val), max_val.no = max(val.no), max_val.shocks = max(val.shocks)) %&gt;% 
+    kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F) %&gt;% scroll_box(width = &quot;100%&quot;, 
+    height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+State
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+max_unemployment
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+max_val
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+max_val.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+max_val.shocks
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Alabama
+</td>
+<td style="text-align:right;">
+10.0
+</td>
+<td style="text-align:right;">
+0.1482294
+</td>
+<td style="text-align:right;">
+0.1539070
+</td>
+<td style="text-align:right;">
+0.0017969
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Alaska
+</td>
+<td style="text-align:right;">
+7.9
+</td>
+<td style="text-align:right;">
+0.1140428
+</td>
+<td style="text-align:right;">
+0.1204238
+</td>
+<td style="text-align:right;">
+0.0017031
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arizona
+</td>
+<td style="text-align:right;">
+9.8
+</td>
+<td style="text-align:right;">
+0.1058296
+</td>
+<td style="text-align:right;">
+0.1109027
+</td>
+<td style="text-align:right;">
+0.0002185
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arkansas
+</td>
+<td style="text-align:right;">
+8.0
+</td>
+<td style="text-align:right;">
+0.1437614
+</td>
+<td style="text-align:right;">
+0.1487982
+</td>
+<td style="text-align:right;">
+0.0003424
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+California
+</td>
+<td style="text-align:right;">
+12.2
+</td>
+<td style="text-align:right;">
+0.0840651
+</td>
+<td style="text-align:right;">
+0.0861813
+</td>
+<td style="text-align:right;">
+0.0000968
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Colorado
+</td>
+<td style="text-align:right;">
+8.9
+</td>
+<td style="text-align:right;">
+0.0906550
+</td>
+<td style="text-align:right;">
+0.0982261
+</td>
+<td style="text-align:right;">
+0.0001611
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Connecticut
+</td>
+<td style="text-align:right;">
+9.4
+</td>
+<td style="text-align:right;">
+0.0808458
+</td>
+<td style="text-align:right;">
+0.0853775
+</td>
+<td style="text-align:right;">
+0.0001650
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Delaware
+</td>
+<td style="text-align:right;">
+7.9
+</td>
+<td style="text-align:right;">
+0.1129543
+</td>
+<td style="text-align:right;">
+0.1157281
+</td>
+<td style="text-align:right;">
+0.0003840
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+District of Columbia
+</td>
+<td style="text-align:right;">
+10.0
+</td>
+<td style="text-align:right;">
+0.1327094
+</td>
+<td style="text-align:right;">
+0.1441333
+</td>
+<td style="text-align:right;">
+0.0002462
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Florida
+</td>
+<td style="text-align:right;">
+10.5
+</td>
+<td style="text-align:right;">
+0.1075152
+</td>
+<td style="text-align:right;">
+0.1166700
+</td>
+<td style="text-align:right;">
+0.0001363
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Georgia
+</td>
+<td style="text-align:right;">
+10.4
+</td>
+<td style="text-align:right;">
+0.1152236
+</td>
+<td style="text-align:right;">
+0.1197655
+</td>
+<td style="text-align:right;">
+0.0002995
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hawaii
+</td>
+<td style="text-align:right;">
+6.7
+</td>
+<td style="text-align:right;">
+0.0856177
+</td>
+<td style="text-align:right;">
+0.0916180
+</td>
+<td style="text-align:right;">
+0.0002200
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Idaho
+</td>
+<td style="text-align:right;">
+8.4
+</td>
+<td style="text-align:right;">
+0.0942198
+</td>
+<td style="text-align:right;">
+0.0988456
+</td>
+<td style="text-align:right;">
+0.0004204
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Illinois
+</td>
+<td style="text-align:right;">
+9.5
+</td>
+<td style="text-align:right;">
+0.0969037
+</td>
+<td style="text-align:right;">
+0.1009863
+</td>
+<td style="text-align:right;">
+0.0001246
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Indiana
+</td>
+<td style="text-align:right;">
+8.9
+</td>
+<td style="text-align:right;">
+0.1174661
+</td>
+<td style="text-align:right;">
+0.1276027
+</td>
+<td style="text-align:right;">
+0.0001615
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Iowa
+</td>
+<td style="text-align:right;">
+5.8
+</td>
+<td style="text-align:right;">
+0.0919742
+</td>
+<td style="text-align:right;">
+0.0994669
+</td>
+<td style="text-align:right;">
+0.0002330
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kansas
+</td>
+<td style="text-align:right;">
+6.7
+</td>
+<td style="text-align:right;">
+0.1043033
+</td>
+<td style="text-align:right;">
+0.1067991
+</td>
+<td style="text-align:right;">
+0.0002815
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kentucky
+</td>
+<td style="text-align:right;">
+9.6
+</td>
+<td style="text-align:right;">
+0.1390001
+</td>
+<td style="text-align:right;">
+0.1569345
+</td>
+<td style="text-align:right;">
+0.0009276
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Louisiana
+</td>
+<td style="text-align:right;">
+7.7
+</td>
+<td style="text-align:right;">
+0.1408902
+</td>
+<td style="text-align:right;">
+0.1518014
+</td>
+<td style="text-align:right;">
+0.0002494
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maine
+</td>
+<td style="text-align:right;">
+8.0
+</td>
+<td style="text-align:right;">
+0.0942944
+</td>
+<td style="text-align:right;">
+0.1082140
+</td>
+<td style="text-align:right;">
+0.0002767
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maryland
+</td>
+<td style="text-align:right;">
+7.4
+</td>
+<td style="text-align:right;">
+0.0998644
+</td>
+<td style="text-align:right;">
+0.1109159
+</td>
+<td style="text-align:right;">
+0.0001613
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Massachusetts
+</td>
+<td style="text-align:right;">
+7.5
+</td>
+<td style="text-align:right;">
+0.0819258
+</td>
+<td style="text-align:right;">
+0.0940988
+</td>
+<td style="text-align:right;">
+0.0002132
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Michigan
+</td>
+<td style="text-align:right;">
+10.4
+</td>
+<td style="text-align:right;">
+0.1115652
+</td>
+<td style="text-align:right;">
+0.1202844
+</td>
+<td style="text-align:right;">
+0.0001597
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minnesota
+</td>
+<td style="text-align:right;">
+6.8
+</td>
+<td style="text-align:right;">
+0.0778525
+</td>
+<td style="text-align:right;">
+0.0805028
+</td>
+<td style="text-align:right;">
+0.0001286
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Mississippi
+</td>
+<td style="text-align:right;">
+9.8
+</td>
+<td style="text-align:right;">
+0.1556261
+</td>
+<td style="text-align:right;">
+0.1623936
+</td>
+<td style="text-align:right;">
+0.0006023
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Missouri
+</td>
+<td style="text-align:right;">
+9.2
+</td>
+<td style="text-align:right;">
+0.1203595
+</td>
+<td style="text-align:right;">
+0.1266117
+</td>
+<td style="text-align:right;">
+0.0009082
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Montana
+</td>
+<td style="text-align:right;">
+6.9
+</td>
+<td style="text-align:right;">
+0.1106735
+</td>
+<td style="text-align:right;">
+0.1212493
+</td>
+<td style="text-align:right;">
+0.0004298
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nebraska
+</td>
+<td style="text-align:right;">
+4.6
+</td>
+<td style="text-align:right;">
+0.0901550
+</td>
+<td style="text-align:right;">
+0.0960634
+</td>
+<td style="text-align:right;">
+0.0002981
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nevada
+</td>
+<td style="text-align:right;">
+13.6
+</td>
+<td style="text-align:right;">
+0.1090717
+</td>
+<td style="text-align:right;">
+0.1140813
+</td>
+<td style="text-align:right;">
+0.0010928
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Hampshire
+</td>
+<td style="text-align:right;">
+5.5
+</td>
+<td style="text-align:right;">
+0.0830712
+</td>
+<td style="text-align:right;">
+0.1048966
+</td>
+<td style="text-align:right;">
+0.0001804
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Jersey
+</td>
+<td style="text-align:right;">
+9.4
+</td>
+<td style="text-align:right;">
+0.0864849
+</td>
+<td style="text-align:right;">
+0.0919289
+</td>
+<td style="text-align:right;">
+0.0000918
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Mexico
+</td>
+<td style="text-align:right;">
+7.2
+</td>
+<td style="text-align:right;">
+0.1264194
+</td>
+<td style="text-align:right;">
+0.1365216
+</td>
+<td style="text-align:right;">
+0.0001477
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New York
+</td>
+<td style="text-align:right;">
+8.6
+</td>
+<td style="text-align:right;">
+0.0849476
+</td>
+<td style="text-align:right;">
+0.0888660
+</td>
+<td style="text-align:right;">
+0.0001250
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Carolina
+</td>
+<td style="text-align:right;">
+10.3
+</td>
+<td style="text-align:right;">
+0.1121788
+</td>
+<td style="text-align:right;">
+0.1177800
+</td>
+<td style="text-align:right;">
+0.0002346
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Dakota
+</td>
+<td style="text-align:right;">
+3.4
+</td>
+<td style="text-align:right;">
+0.0974221
+</td>
+<td style="text-align:right;">
+0.1081730
+</td>
+<td style="text-align:right;">
+0.0005326
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Ohio
+</td>
+<td style="text-align:right;">
+9.1
+</td>
+<td style="text-align:right;">
+0.1160531
+</td>
+<td style="text-align:right;">
+0.1323009
+</td>
+<td style="text-align:right;">
+0.0001391
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oklahoma
+</td>
+<td style="text-align:right;">
+5.8
+</td>
+<td style="text-align:right;">
+0.1451665
+</td>
+<td style="text-align:right;">
+0.1493582
+</td>
+<td style="text-align:right;">
+0.0005447
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oregon
+</td>
+<td style="text-align:right;">
+9.8
+</td>
+<td style="text-align:right;">
+0.0959256
+</td>
+<td style="text-align:right;">
+0.0999172
+</td>
+<td style="text-align:right;">
+0.0002690
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pennsylvania
+</td>
+<td style="text-align:right;">
+7.7
+</td>
+<td style="text-align:right;">
+0.1056425
+</td>
+<td style="text-align:right;">
+0.1165144
+</td>
+<td style="text-align:right;">
+0.0001318
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Rhode Island
+</td>
+<td style="text-align:right;">
+11.1
+</td>
+<td style="text-align:right;">
+0.0902397
+</td>
+<td style="text-align:right;">
+0.0969465
+</td>
+<td style="text-align:right;">
+0.0000893
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Carolina
+</td>
+<td style="text-align:right;">
+10.7
+</td>
+<td style="text-align:right;">
+0.1311548
+</td>
+<td style="text-align:right;">
+0.1395128
+</td>
+<td style="text-align:right;">
+0.0002276
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Dakota
+</td>
+<td style="text-align:right;">
+4.9
+</td>
+<td style="text-align:right;">
+0.0992961
+</td>
+<td style="text-align:right;">
+0.1120576
+</td>
+<td style="text-align:right;">
+0.0005320
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tennessee
+</td>
+<td style="text-align:right;">
+9.5
+</td>
+<td style="text-align:right;">
+0.1384549
+</td>
+<td style="text-align:right;">
+0.1461086
+</td>
+<td style="text-align:right;">
+0.0003362
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Texas
+</td>
+<td style="text-align:right;">
+8.2
+</td>
+<td style="text-align:right;">
+0.1043818
+</td>
+<td style="text-align:right;">
+0.1072133
+</td>
+<td style="text-align:right;">
+0.0001248
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Utah
+</td>
+<td style="text-align:right;">
+7.7
+</td>
+<td style="text-align:right;">
+0.0930297
+</td>
+<td style="text-align:right;">
+0.0972118
+</td>
+<td style="text-align:right;">
+0.0002041
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Vermont
+</td>
+<td style="text-align:right;">
+5.9
+</td>
+<td style="text-align:right;">
+0.0854773
+</td>
+<td style="text-align:right;">
+0.0943701
+</td>
+<td style="text-align:right;">
+0.0009183
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Virginia
+</td>
+<td style="text-align:right;">
+6.6
+</td>
+<td style="text-align:right;">
+0.0943860
+</td>
+<td style="text-align:right;">
+0.0992940
+</td>
+<td style="text-align:right;">
+0.0002438
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Washington
+</td>
+<td style="text-align:right;">
+8.8
+</td>
+<td style="text-align:right;">
+0.0878174
+</td>
+<td style="text-align:right;">
+0.0907441
+</td>
+<td style="text-align:right;">
+0.0003247
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+West Virginia
+</td>
+<td style="text-align:right;">
+8.3
+</td>
+<td style="text-align:right;">
+0.1510838
+</td>
+<td style="text-align:right;">
+0.1661913
+</td>
+<td style="text-align:right;">
+0.0003636
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wisconsin
+</td>
+<td style="text-align:right;">
+7.7
+</td>
+<td style="text-align:right;">
+0.0906010
+</td>
+<td style="text-align:right;">
+0.0969924
+</td>
+<td style="text-align:right;">
+0.0001280
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wyoming
+</td>
+<td style="text-align:right;">
+6.5
+</td>
+<td style="text-align:right;">
+0.1110319
+</td>
+<td style="text-align:right;">
+0.1140044
+</td>
+<td style="text-align:right;">
+0.0006859
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The tables above show the mean value for each numeric statistic grouped by state. The variable for value of probability of death is shown in the second table in descending order to highlight the stats with the worst values at the top. The states with the best(lowest) 5 values are also highlighted with the “slice_min()” function.</p>
+</div>
+<div id="interesting-data" class="section level4">
+<h4>Interesting Data</h4>
+<pre class="r"><code>Datas %&gt;% filter(year == 2011 | year == 2019) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, 
+    full_width = F) %&gt;% scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+State
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Region
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+year
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+unemployment_rate
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+upper
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+lower
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+upper.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+lower.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.shocks
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Alabama
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+10.0
+</td>
+<td style="text-align:right;">
+0.1485765
+</td>
+<td style="text-align:right;">
+0.1510622
+</td>
+<td style="text-align:right;">
+0.1459665
+</td>
+<td style="text-align:right;">
+0.1467796
+</td>
+<td style="text-align:right;">
+0.1492705
+</td>
+<td style="text-align:right;">
+0.1442869
+</td>
+<td style="text-align:right;">
+0.0017969
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Alabama
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.5
+</td>
+<td style="text-align:right;">
+0.1506899
+</td>
+<td style="text-align:right;">
+0.1765877
+</td>
+<td style="text-align:right;">
+0.1268338
+</td>
+<td style="text-align:right;">
+0.1506632
+</td>
+<td style="text-align:right;">
+0.1765622
+</td>
+<td style="text-align:right;">
+0.1268065
+</td>
+<td style="text-align:right;">
+0.0000267
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Alaska
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.9
+</td>
+<td style="text-align:right;">
+0.1144804
+</td>
+<td style="text-align:right;">
+0.1180651
+</td>
+<td style="text-align:right;">
+0.1108818
+</td>
+<td style="text-align:right;">
+0.1143048
+</td>
+<td style="text-align:right;">
+0.1178837
+</td>
+<td style="text-align:right;">
+0.1107087
+</td>
+<td style="text-align:right;">
+0.0001756
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Alaska
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+5.7
+</td>
+<td style="text-align:right;">
+0.1199716
+</td>
+<td style="text-align:right;">
+0.1365589
+</td>
+<td style="text-align:right;">
+0.1056601
+</td>
+<td style="text-align:right;">
+0.1199672
+</td>
+<td style="text-align:right;">
+0.1365543
+</td>
+<td style="text-align:right;">
+0.1056553
+</td>
+<td style="text-align:right;">
+0.0000044
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arizona
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.8
+</td>
+<td style="text-align:right;">
+0.1065001
+</td>
+<td style="text-align:right;">
+0.1084758
+</td>
+<td style="text-align:right;">
+0.1045791
+</td>
+<td style="text-align:right;">
+0.1063553
+</td>
+<td style="text-align:right;">
+0.1083390
+</td>
+<td style="text-align:right;">
+0.1044385
+</td>
+<td style="text-align:right;">
+0.0001447
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arizona
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+5.0
+</td>
+<td style="text-align:right;">
+0.1096398
+</td>
+<td style="text-align:right;">
+0.1300992
+</td>
+<td style="text-align:right;">
+0.0921064
+</td>
+<td style="text-align:right;">
+0.1096352
+</td>
+<td style="text-align:right;">
+0.1300945
+</td>
+<td style="text-align:right;">
+0.0921018
+</td>
+<td style="text-align:right;">
+0.0000046
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arkansas
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.0
+</td>
+<td style="text-align:right;">
+0.1446636
+</td>
+<td style="text-align:right;">
+0.1476994
+</td>
+<td style="text-align:right;">
+0.1415162
+</td>
+<td style="text-align:right;">
+0.1443212
+</td>
+<td style="text-align:right;">
+0.1473702
+</td>
+<td style="text-align:right;">
+0.1411656
+</td>
+<td style="text-align:right;">
+0.0003424
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arkansas
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.6
+</td>
+<td style="text-align:right;">
+0.1447897
+</td>
+<td style="text-align:right;">
+0.1709667
+</td>
+<td style="text-align:right;">
+0.1209385
+</td>
+<td style="text-align:right;">
+0.1447853
+</td>
+<td style="text-align:right;">
+0.1709626
+</td>
+<td style="text-align:right;">
+0.1209338
+</td>
+<td style="text-align:right;">
+0.0000044
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+California
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+12.2
+</td>
+<td style="text-align:right;">
+0.0862781
+</td>
+<td style="text-align:right;">
+0.0869928
+</td>
+<td style="text-align:right;">
+0.0855193
+</td>
+<td style="text-align:right;">
+0.0861813
+</td>
+<td style="text-align:right;">
+0.0868896
+</td>
+<td style="text-align:right;">
+0.0854228
+</td>
+<td style="text-align:right;">
+0.0000968
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+California
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.3
+</td>
+<td style="text-align:right;">
+0.0840651
+</td>
+<td style="text-align:right;">
+0.0986270
+</td>
+<td style="text-align:right;">
+0.0709005
+</td>
+<td style="text-align:right;">
+0.0840207
+</td>
+<td style="text-align:right;">
+0.0985804
+</td>
+<td style="text-align:right;">
+0.0708562
+</td>
+<td style="text-align:right;">
+0.0000444
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Colorado
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.9
+</td>
+<td style="text-align:right;">
+0.0922969
+</td>
+<td style="text-align:right;">
+0.0942736
+</td>
+<td style="text-align:right;">
+0.0903900
+</td>
+<td style="text-align:right;">
+0.0921492
+</td>
+<td style="text-align:right;">
+0.0941332
+</td>
+<td style="text-align:right;">
+0.0902470
+</td>
+<td style="text-align:right;">
+0.0001477
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Colorado
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.9
+</td>
+<td style="text-align:right;">
+0.0958185
+</td>
+<td style="text-align:right;">
+0.1139985
+</td>
+<td style="text-align:right;">
+0.0799276
+</td>
+<td style="text-align:right;">
+0.0958140
+</td>
+<td style="text-align:right;">
+0.1139942
+</td>
+<td style="text-align:right;">
+0.0799232
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Connecticut
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.4
+</td>
+<td style="text-align:right;">
+0.0808999
+</td>
+<td style="text-align:right;">
+0.0830259
+</td>
+<td style="text-align:right;">
+0.0789219
+</td>
+<td style="text-align:right;">
+0.0807408
+</td>
+<td style="text-align:right;">
+0.0828761
+</td>
+<td style="text-align:right;">
+0.0787713
+</td>
+<td style="text-align:right;">
+0.0001591
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Connecticut
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.7
+</td>
+<td style="text-align:right;">
+0.0843326
+</td>
+<td style="text-align:right;">
+0.1003331
+</td>
+<td style="text-align:right;">
+0.0694693
+</td>
+<td style="text-align:right;">
+0.0843281
+</td>
+<td style="text-align:right;">
+0.1003287
+</td>
+<td style="text-align:right;">
+0.0694642
+</td>
+<td style="text-align:right;">
+0.0000046
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Delaware
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.9
+</td>
+<td style="text-align:right;">
+0.1141824
+</td>
+<td style="text-align:right;">
+0.1179129
+</td>
+<td style="text-align:right;">
+0.1106630
+</td>
+<td style="text-align:right;">
+0.1140347
+</td>
+<td style="text-align:right;">
+0.1177710
+</td>
+<td style="text-align:right;">
+0.1105194
+</td>
+<td style="text-align:right;">
+0.0001477
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Delaware
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.5
+</td>
+<td style="text-align:right;">
+0.1150253
+</td>
+<td style="text-align:right;">
+0.1321803
+</td>
+<td style="text-align:right;">
+0.1000258
+</td>
+<td style="text-align:right;">
+0.1150208
+</td>
+<td style="text-align:right;">
+0.1321758
+</td>
+<td style="text-align:right;">
+0.1000214
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+District of Columbia
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+10.0
+</td>
+<td style="text-align:right;">
+0.1405669
+</td>
+<td style="text-align:right;">
+0.1455558
+</td>
+<td style="text-align:right;">
+0.1356327
+</td>
+<td style="text-align:right;">
+0.1404910
+</td>
+<td style="text-align:right;">
+0.1454823
+</td>
+<td style="text-align:right;">
+0.1355585
+</td>
+<td style="text-align:right;">
+0.0000759
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+District of Columbia
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+5.8
+</td>
+<td style="text-align:right;">
+0.1421889
+</td>
+<td style="text-align:right;">
+0.1673049
+</td>
+<td style="text-align:right;">
+0.1201652
+</td>
+<td style="text-align:right;">
+0.1421846
+</td>
+<td style="text-align:right;">
+0.1673004
+</td>
+<td style="text-align:right;">
+0.1201607
+</td>
+<td style="text-align:right;">
+0.0000043
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Florida
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+10.5
+</td>
+<td style="text-align:right;">
+0.1113876
+</td>
+<td style="text-align:right;">
+0.1125537
+</td>
+<td style="text-align:right;">
+0.1102510
+</td>
+<td style="text-align:right;">
+0.1112951
+</td>
+<td style="text-align:right;">
+0.1124646
+</td>
+<td style="text-align:right;">
+0.1101567
+</td>
+<td style="text-align:right;">
+0.0000925
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Florida
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.4
+</td>
+<td style="text-align:right;">
+0.1146429
+</td>
+<td style="text-align:right;">
+0.1351050
+</td>
+<td style="text-align:right;">
+0.0968947
+</td>
+<td style="text-align:right;">
+0.1146143
+</td>
+<td style="text-align:right;">
+0.1350755
+</td>
+<td style="text-align:right;">
+0.0968661
+</td>
+<td style="text-align:right;">
+0.0000286
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Georgia
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+10.4
+</td>
+<td style="text-align:right;">
+0.1164629
+</td>
+<td style="text-align:right;">
+0.1181562
+</td>
+<td style="text-align:right;">
+0.1148666
+</td>
+<td style="text-align:right;">
+0.1162590
+</td>
+<td style="text-align:right;">
+0.1179609
+</td>
+<td style="text-align:right;">
+0.1146657
+</td>
+<td style="text-align:right;">
+0.0002040
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Georgia
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.8
+</td>
+<td style="text-align:right;">
+0.1179277
+</td>
+<td style="text-align:right;">
+0.1384922
+</td>
+<td style="text-align:right;">
+0.0991757
+</td>
+<td style="text-align:right;">
+0.1179009
+</td>
+<td style="text-align:right;">
+0.1384678
+</td>
+<td style="text-align:right;">
+0.0991472
+</td>
+<td style="text-align:right;">
+0.0000268
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hawaii
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+6.7
+</td>
+<td style="text-align:right;">
+0.0917090
+</td>
+<td style="text-align:right;">
+0.0949033
+</td>
+<td style="text-align:right;">
+0.0887976
+</td>
+<td style="text-align:right;">
+0.0916180
+</td>
+<td style="text-align:right;">
+0.0948118
+</td>
+<td style="text-align:right;">
+0.0887042
+</td>
+<td style="text-align:right;">
+0.0000910
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hawaii
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.7
+</td>
+<td style="text-align:right;">
+0.0857363
+</td>
+<td style="text-align:right;">
+0.1016156
+</td>
+<td style="text-align:right;">
+0.0716563
+</td>
+<td style="text-align:right;">
+0.0857315
+</td>
+<td style="text-align:right;">
+0.1016106
+</td>
+<td style="text-align:right;">
+0.0716515
+</td>
+<td style="text-align:right;">
+0.0000047
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Idaho
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.4
+</td>
+<td style="text-align:right;">
+0.0950417
+</td>
+<td style="text-align:right;">
+0.0981565
+</td>
+<td style="text-align:right;">
+0.0921185
+</td>
+<td style="text-align:right;">
+0.0949255
+</td>
+<td style="text-align:right;">
+0.0980335
+</td>
+<td style="text-align:right;">
+0.0920017
+</td>
+<td style="text-align:right;">
+0.0001162
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Idaho
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.9
+</td>
+<td style="text-align:right;">
+0.0964671
+</td>
+<td style="text-align:right;">
+0.1140937
+</td>
+<td style="text-align:right;">
+0.0806735
+</td>
+<td style="text-align:right;">
+0.0964623
+</td>
+<td style="text-align:right;">
+0.1140891
+</td>
+<td style="text-align:right;">
+0.0806687
+</td>
+<td style="text-align:right;">
+0.0000048
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Illinois
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.5
+</td>
+<td style="text-align:right;">
+0.0979544
+</td>
+<td style="text-align:right;">
+0.0993090
+</td>
+<td style="text-align:right;">
+0.0967081
+</td>
+<td style="text-align:right;">
+0.0978297
+</td>
+<td style="text-align:right;">
+0.0991851
+</td>
+<td style="text-align:right;">
+0.0965754
+</td>
+<td style="text-align:right;">
+0.0001246
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Illinois
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.5
+</td>
+<td style="text-align:right;">
+0.0995816
+</td>
+<td style="text-align:right;">
+0.1183043
+</td>
+<td style="text-align:right;">
+0.0823406
+</td>
+<td style="text-align:right;">
+0.0995068
+</td>
+<td style="text-align:right;">
+0.1182268
+</td>
+<td style="text-align:right;">
+0.0822688
+</td>
+<td style="text-align:right;">
+0.0000748
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Indiana
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.9
+</td>
+<td style="text-align:right;">
+0.1174661
+</td>
+<td style="text-align:right;">
+0.1195360
+</td>
+<td style="text-align:right;">
+0.1156073
+</td>
+<td style="text-align:right;">
+0.1173923
+</td>
+<td style="text-align:right;">
+0.1194616
+</td>
+<td style="text-align:right;">
+0.1155313
+</td>
+<td style="text-align:right;">
+0.0000738
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Indiana
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.4
+</td>
+<td style="text-align:right;">
+0.1240369
+</td>
+<td style="text-align:right;">
+0.1463397
+</td>
+<td style="text-align:right;">
+0.1039989
+</td>
+<td style="text-align:right;">
+0.1240325
+</td>
+<td style="text-align:right;">
+0.1463354
+</td>
+<td style="text-align:right;">
+0.1039944
+</td>
+<td style="text-align:right;">
+0.0000044
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Iowa
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+5.8
+</td>
+<td style="text-align:right;">
+0.0919742
+</td>
+<td style="text-align:right;">
+0.0944966
+</td>
+<td style="text-align:right;">
+0.0894583
+</td>
+<td style="text-align:right;">
+0.0917769
+</td>
+<td style="text-align:right;">
+0.0943005
+</td>
+<td style="text-align:right;">
+0.0892612
+</td>
+<td style="text-align:right;">
+0.0001973
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Iowa
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.7
+</td>
+<td style="text-align:right;">
+0.0971407
+</td>
+<td style="text-align:right;">
+0.1166274
+</td>
+<td style="text-align:right;">
+0.0802168
+</td>
+<td style="text-align:right;">
+0.0971092
+</td>
+<td style="text-align:right;">
+0.1165940
+</td>
+<td style="text-align:right;">
+0.0801860
+</td>
+<td style="text-align:right;">
+0.0000316
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kansas
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+6.7
+</td>
+<td style="text-align:right;">
+0.1051201
+</td>
+<td style="text-align:right;">
+0.1078900
+</td>
+<td style="text-align:right;">
+0.1025335
+</td>
+<td style="text-align:right;">
+0.1048387
+</td>
+<td style="text-align:right;">
+0.1076287
+</td>
+<td style="text-align:right;">
+0.1022493
+</td>
+<td style="text-align:right;">
+0.0002815
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kansas
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.3
+</td>
+<td style="text-align:right;">
+0.1043076
+</td>
+<td style="text-align:right;">
+0.1233461
+</td>
+<td style="text-align:right;">
+0.0864344
+</td>
+<td style="text-align:right;">
+0.1042767
+</td>
+<td style="text-align:right;">
+0.1233146
+</td>
+<td style="text-align:right;">
+0.0864011
+</td>
+<td style="text-align:right;">
+0.0000310
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kentucky
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.6
+</td>
+<td style="text-align:right;">
+0.1416804
+</td>
+<td style="text-align:right;">
+0.1443220
+</td>
+<td style="text-align:right;">
+0.1392482
+</td>
+<td style="text-align:right;">
+0.1407529
+</td>
+<td style="text-align:right;">
+0.1434126
+</td>
+<td style="text-align:right;">
+0.1383181
+</td>
+<td style="text-align:right;">
+0.0009276
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kentucky
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.2
+</td>
+<td style="text-align:right;">
+0.1518204
+</td>
+<td style="text-align:right;">
+0.1771173
+</td>
+<td style="text-align:right;">
+0.1265922
+</td>
+<td style="text-align:right;">
+0.1518161
+</td>
+<td style="text-align:right;">
+0.1771132
+</td>
+<td style="text-align:right;">
+0.1265879
+</td>
+<td style="text-align:right;">
+0.0000043
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Louisiana
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.7
+</td>
+<td style="text-align:right;">
+0.1408902
+</td>
+<td style="text-align:right;">
+0.1434071
+</td>
+<td style="text-align:right;">
+0.1383824
+</td>
+<td style="text-align:right;">
+0.1407687
+</td>
+<td style="text-align:right;">
+0.1432945
+</td>
+<td style="text-align:right;">
+0.1382570
+</td>
+<td style="text-align:right;">
+0.0001216
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Louisiana
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.6
+</td>
+<td style="text-align:right;">
+0.1484319
+</td>
+<td style="text-align:right;">
+0.1740727
+</td>
+<td style="text-align:right;">
+0.1242948
+</td>
+<td style="text-align:right;">
+0.1484276
+</td>
+<td style="text-align:right;">
+0.1740683
+</td>
+<td style="text-align:right;">
+0.1242902
+</td>
+<td style="text-align:right;">
+0.0000043
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maine
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.0
+</td>
+<td style="text-align:right;">
+0.0942944
+</td>
+<td style="text-align:right;">
+0.0977936
+</td>
+<td style="text-align:right;">
+0.0910089
+</td>
+<td style="text-align:right;">
+0.0941503
+</td>
+<td style="text-align:right;">
+0.0976461
+</td>
+<td style="text-align:right;">
+0.0908645
+</td>
+<td style="text-align:right;">
+0.0001441
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maine
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.8
+</td>
+<td style="text-align:right;">
+0.1062509
+</td>
+<td style="text-align:right;">
+0.1257815
+</td>
+<td style="text-align:right;">
+0.0892693
+</td>
+<td style="text-align:right;">
+0.1062462
+</td>
+<td style="text-align:right;">
+0.1257768
+</td>
+<td style="text-align:right;">
+0.0892649
+</td>
+<td style="text-align:right;">
+0.0000047
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maryland
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.4
+</td>
+<td style="text-align:right;">
+0.0998644
+</td>
+<td style="text-align:right;">
+0.1016564
+</td>
+<td style="text-align:right;">
+0.0979479
+</td>
+<td style="text-align:right;">
+0.0997902
+</td>
+<td style="text-align:right;">
+0.1015885
+</td>
+<td style="text-align:right;">
+0.0978787
+</td>
+<td style="text-align:right;">
+0.0000741
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maryland
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.6
+</td>
+<td style="text-align:right;">
+0.1088452
+</td>
+<td style="text-align:right;">
+0.1280464
+</td>
+<td style="text-align:right;">
+0.0898443
+</td>
+<td style="text-align:right;">
+0.1088409
+</td>
+<td style="text-align:right;">
+0.1280422
+</td>
+<td style="text-align:right;">
+0.0898401
+</td>
+<td style="text-align:right;">
+0.0000044
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Massachusetts
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.5
+</td>
+<td style="text-align:right;">
+0.0831910
+</td>
+<td style="text-align:right;">
+0.0849277
+</td>
+<td style="text-align:right;">
+0.0815177
+</td>
+<td style="text-align:right;">
+0.0830776
+</td>
+<td style="text-align:right;">
+0.0848059
+</td>
+<td style="text-align:right;">
+0.0814075
+</td>
+<td style="text-align:right;">
+0.0001134
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Massachusetts
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.2
+</td>
+<td style="text-align:right;">
+0.0910476
+</td>
+<td style="text-align:right;">
+0.1079570
+</td>
+<td style="text-align:right;">
+0.0757316
+</td>
+<td style="text-align:right;">
+0.0910431
+</td>
+<td style="text-align:right;">
+0.1079527
+</td>
+<td style="text-align:right;">
+0.0757273
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Michigan
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+10.4
+</td>
+<td style="text-align:right;">
+0.1137133
+</td>
+<td style="text-align:right;">
+0.1154484
+</td>
+<td style="text-align:right;">
+0.1121244
+</td>
+<td style="text-align:right;">
+0.1135930
+</td>
+<td style="text-align:right;">
+0.1153299
+</td>
+<td style="text-align:right;">
+0.1120009
+</td>
+<td style="text-align:right;">
+0.0001204
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Michigan
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.2
+</td>
+<td style="text-align:right;">
+0.1171718
+</td>
+<td style="text-align:right;">
+0.1377864
+</td>
+<td style="text-align:right;">
+0.0973339
+</td>
+<td style="text-align:right;">
+0.1171673
+</td>
+<td style="text-align:right;">
+0.1377822
+</td>
+<td style="text-align:right;">
+0.0973290
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minnesota
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+6.8
+</td>
+<td style="text-align:right;">
+0.0781501
+</td>
+<td style="text-align:right;">
+0.0798862
+</td>
+<td style="text-align:right;">
+0.0764027
+</td>
+<td style="text-align:right;">
+0.0780215
+</td>
+<td style="text-align:right;">
+0.0797581
+</td>
+<td style="text-align:right;">
+0.0762813
+</td>
+<td style="text-align:right;">
+0.0001286
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minnesota
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.2
+</td>
+<td style="text-align:right;">
+0.0791839
+</td>
+<td style="text-align:right;">
+0.0951944
+</td>
+<td style="text-align:right;">
+0.0648457
+</td>
+<td style="text-align:right;">
+0.0791792
+</td>
+<td style="text-align:right;">
+0.0951896
+</td>
+<td style="text-align:right;">
+0.0648411
+</td>
+<td style="text-align:right;">
+0.0000047
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Mississippi
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.8
+</td>
+<td style="text-align:right;">
+0.1574364
+</td>
+<td style="text-align:right;">
+0.1606499
+</td>
+<td style="text-align:right;">
+0.1543412
+</td>
+<td style="text-align:right;">
+0.1568340
+</td>
+<td style="text-align:right;">
+0.1600035
+</td>
+<td style="text-align:right;">
+0.1537599
+</td>
+<td style="text-align:right;">
+0.0006023
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Mississippi
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+5.4
+</td>
+<td style="text-align:right;">
+0.1592820
+</td>
+<td style="text-align:right;">
+0.1855088
+</td>
+<td style="text-align:right;">
+0.1358025
+</td>
+<td style="text-align:right;">
+0.1592778
+</td>
+<td style="text-align:right;">
+0.1855045
+</td>
+<td style="text-align:right;">
+0.1357980
+</td>
+<td style="text-align:right;">
+0.0000043
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Missouri
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.2
+</td>
+<td style="text-align:right;">
+0.1218995
+</td>
+<td style="text-align:right;">
+0.1240474
+</td>
+<td style="text-align:right;">
+0.1200240
+</td>
+<td style="text-align:right;">
+0.1209913
+</td>
+<td style="text-align:right;">
+0.1231031
+</td>
+<td style="text-align:right;">
+0.1191477
+</td>
+<td style="text-align:right;">
+0.0009082
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Missouri
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.2
+</td>
+<td style="text-align:right;">
+0.1242329
+</td>
+<td style="text-align:right;">
+0.1479265
+</td>
+<td style="text-align:right;">
+0.1041213
+</td>
+<td style="text-align:right;">
+0.1242029
+</td>
+<td style="text-align:right;">
+0.1478978
+</td>
+<td style="text-align:right;">
+0.1040898
+</td>
+<td style="text-align:right;">
+0.0000299
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Montana
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+6.9
+</td>
+<td style="text-align:right;">
+0.1108366
+</td>
+<td style="text-align:right;">
+0.1147841
+</td>
+<td style="text-align:right;">
+0.1069130
+</td>
+<td style="text-align:right;">
+0.1104069
+</td>
+<td style="text-align:right;">
+0.1143641
+</td>
+<td style="text-align:right;">
+0.1064659
+</td>
+<td style="text-align:right;">
+0.0004298
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Montana
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.6
+</td>
+<td style="text-align:right;">
+0.1161116
+</td>
+<td style="text-align:right;">
+0.1373588
+</td>
+<td style="text-align:right;">
+0.0984900
+</td>
+<td style="text-align:right;">
+0.1161068
+</td>
+<td style="text-align:right;">
+0.1373537
+</td>
+<td style="text-align:right;">
+0.0984848
+</td>
+<td style="text-align:right;">
+0.0000048
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nebraska
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+4.6
+</td>
+<td style="text-align:right;">
+0.0901550
+</td>
+<td style="text-align:right;">
+0.0930091
+</td>
+<td style="text-align:right;">
+0.0874138
+</td>
+<td style="text-align:right;">
+0.0900437
+</td>
+<td style="text-align:right;">
+0.0929053
+</td>
+<td style="text-align:right;">
+0.0873038
+</td>
+<td style="text-align:right;">
+0.0001113
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nebraska
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.0
+</td>
+<td style="text-align:right;">
+0.0905708
+</td>
+<td style="text-align:right;">
+0.1056332
+</td>
+<td style="text-align:right;">
+0.0759432
+</td>
+<td style="text-align:right;">
+0.0905392
+</td>
+<td style="text-align:right;">
+0.1056035
+</td>
+<td style="text-align:right;">
+0.0759107
+</td>
+<td style="text-align:right;">
+0.0000316
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nevada
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+13.6
+</td>
+<td style="text-align:right;">
+0.1144003
+</td>
+<td style="text-align:right;">
+0.1171644
+</td>
+<td style="text-align:right;">
+0.1117490
+</td>
+<td style="text-align:right;">
+0.1140813
+</td>
+<td style="text-align:right;">
+0.1168488
+</td>
+<td style="text-align:right;">
+0.1114297
+</td>
+<td style="text-align:right;">
+0.0003190
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nevada
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.1
+</td>
+<td style="text-align:right;">
+0.1117448
+</td>
+<td style="text-align:right;">
+0.1321394
+</td>
+<td style="text-align:right;">
+0.0946032
+</td>
+<td style="text-align:right;">
+0.1117404
+</td>
+<td style="text-align:right;">
+0.1321353
+</td>
+<td style="text-align:right;">
+0.0945991
+</td>
+<td style="text-align:right;">
+0.0000044
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Hampshire
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+5.5
+</td>
+<td style="text-align:right;">
+0.0837175
+</td>
+<td style="text-align:right;">
+0.0868819
+</td>
+<td style="text-align:right;">
+0.0806837
+</td>
+<td style="text-align:right;">
+0.0836240
+</td>
+<td style="text-align:right;">
+0.0867922
+</td>
+<td style="text-align:right;">
+0.0805861
+</td>
+<td style="text-align:right;">
+0.0000936
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Hampshire
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.6
+</td>
+<td style="text-align:right;">
+0.1015652
+</td>
+<td style="text-align:right;">
+0.1201952
+</td>
+<td style="text-align:right;">
+0.0849755
+</td>
+<td style="text-align:right;">
+0.1015606
+</td>
+<td style="text-align:right;">
+0.1201909
+</td>
+<td style="text-align:right;">
+0.0849707
+</td>
+<td style="text-align:right;">
+0.0000046
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Jersey
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.4
+</td>
+<td style="text-align:right;">
+0.0896277
+</td>
+<td style="text-align:right;">
+0.0911552
+</td>
+<td style="text-align:right;">
+0.0882155
+</td>
+<td style="text-align:right;">
+0.0895359
+</td>
+<td style="text-align:right;">
+0.0910594
+</td>
+<td style="text-align:right;">
+0.0881229
+</td>
+<td style="text-align:right;">
+0.0000918
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Jersey
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.5
+</td>
+<td style="text-align:right;">
+0.0907136
+</td>
+<td style="text-align:right;">
+0.1087378
+</td>
+<td style="text-align:right;">
+0.0761040
+</td>
+<td style="text-align:right;">
+0.0907091
+</td>
+<td style="text-align:right;">
+0.1087335
+</td>
+<td style="text-align:right;">
+0.0760993
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Mexico
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.2
+</td>
+<td style="text-align:right;">
+0.1264194
+</td>
+<td style="text-align:right;">
+0.1294784
+</td>
+<td style="text-align:right;">
+0.1232261
+</td>
+<td style="text-align:right;">
+0.1263305
+</td>
+<td style="text-align:right;">
+0.1293906
+</td>
+<td style="text-align:right;">
+0.1231345
+</td>
+<td style="text-align:right;">
+0.0000889
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Mexico
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+5.1
+</td>
+<td style="text-align:right;">
+0.1345313
+</td>
+<td style="text-align:right;">
+0.1574281
+</td>
+<td style="text-align:right;">
+0.1145964
+</td>
+<td style="text-align:right;">
+0.1345268
+</td>
+<td style="text-align:right;">
+0.1574240
+</td>
+<td style="text-align:right;">
+0.1145918
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New York
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.3
+</td>
+<td style="text-align:right;">
+0.0873228
+</td>
+<td style="text-align:right;">
+0.0883068
+</td>
+<td style="text-align:right;">
+0.0863335
+</td>
+<td style="text-align:right;">
+0.0872202
+</td>
+<td style="text-align:right;">
+0.0882071
+</td>
+<td style="text-align:right;">
+0.0862333
+</td>
+<td style="text-align:right;">
+0.0001025
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New York
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.9
+</td>
+<td style="text-align:right;">
+0.0874657
+</td>
+<td style="text-align:right;">
+0.1036836
+</td>
+<td style="text-align:right;">
+0.0726857
+</td>
+<td style="text-align:right;">
+0.0874612
+</td>
+<td style="text-align:right;">
+0.1036793
+</td>
+<td style="text-align:right;">
+0.0726811
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Carolina
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+10.3
+</td>
+<td style="text-align:right;">
+0.1137138
+</td>
+<td style="text-align:right;">
+0.1153831
+</td>
+<td style="text-align:right;">
+0.1120830
+</td>
+<td style="text-align:right;">
+0.1134793
+</td>
+<td style="text-align:right;">
+0.1151543
+</td>
+<td style="text-align:right;">
+0.1118476
+</td>
+<td style="text-align:right;">
+0.0002346
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Carolina
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.0
+</td>
+<td style="text-align:right;">
+0.1160539
+</td>
+<td style="text-align:right;">
+0.1380380
+</td>
+<td style="text-align:right;">
+0.0980238
+</td>
+<td style="text-align:right;">
+0.1160495
+</td>
+<td style="text-align:right;">
+0.1380341
+</td>
+<td style="text-align:right;">
+0.0980193
+</td>
+<td style="text-align:right;">
+0.0000044
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Dakota
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+3.4
+</td>
+<td style="text-align:right;">
+0.0974221
+</td>
+<td style="text-align:right;">
+0.1009144
+</td>
+<td style="text-align:right;">
+0.0938854
+</td>
+<td style="text-align:right;">
+0.0968896
+</td>
+<td style="text-align:right;">
+0.1003674
+</td>
+<td style="text-align:right;">
+0.0933420
+</td>
+<td style="text-align:right;">
+0.0005326
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Dakota
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.3
+</td>
+<td style="text-align:right;">
+0.1058874
+</td>
+<td style="text-align:right;">
+0.1209139
+</td>
+<td style="text-align:right;">
+0.0922141
+</td>
+<td style="text-align:right;">
+0.1058826
+</td>
+<td style="text-align:right;">
+0.1209092
+</td>
+<td style="text-align:right;">
+0.0922095
+</td>
+<td style="text-align:right;">
+0.0000048
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Ohio
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.1
+</td>
+<td style="text-align:right;">
+0.1168612
+</td>
+<td style="text-align:right;">
+0.1183246
+</td>
+<td style="text-align:right;">
+0.1153391
+</td>
+<td style="text-align:right;">
+0.1167221
+</td>
+<td style="text-align:right;">
+0.1181827
+</td>
+<td style="text-align:right;">
+0.1152012
+</td>
+<td style="text-align:right;">
+0.0001391
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Ohio
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.2
+</td>
+<td style="text-align:right;">
+0.1276087
+</td>
+<td style="text-align:right;">
+0.1484946
+</td>
+<td style="text-align:right;">
+0.1084934
+</td>
+<td style="text-align:right;">
+0.1275685
+</td>
+<td style="text-align:right;">
+0.1484532
+</td>
+<td style="text-align:right;">
+0.1084533
+</td>
+<td style="text-align:right;">
+0.0000401
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oklahoma
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+5.8
+</td>
+<td style="text-align:right;">
+0.1452959
+</td>
+<td style="text-align:right;">
+0.1478148
+</td>
+<td style="text-align:right;">
+0.1425130
+</td>
+<td style="text-align:right;">
+0.1449641
+</td>
+<td style="text-align:right;">
+0.1474811
+</td>
+<td style="text-align:right;">
+0.1421857
+</td>
+<td style="text-align:right;">
+0.0003318
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oklahoma
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.2
+</td>
+<td style="text-align:right;">
+0.1451665
+</td>
+<td style="text-align:right;">
+0.1690152
+</td>
+<td style="text-align:right;">
+0.1208327
+</td>
+<td style="text-align:right;">
+0.1451442
+</td>
+<td style="text-align:right;">
+0.1689922
+</td>
+<td style="text-align:right;">
+0.1208096
+</td>
+<td style="text-align:right;">
+0.0000223
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oregon
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.8
+</td>
+<td style="text-align:right;">
+0.0968001
+</td>
+<td style="text-align:right;">
+0.0990772
+</td>
+<td style="text-align:right;">
+0.0945409
+</td>
+<td style="text-align:right;">
+0.0965763
+</td>
+<td style="text-align:right;">
+0.0988432
+</td>
+<td style="text-align:right;">
+0.0943237
+</td>
+<td style="text-align:right;">
+0.0002238
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oregon
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.1
+</td>
+<td style="text-align:right;">
+0.0970213
+</td>
+<td style="text-align:right;">
+0.1153572
+</td>
+<td style="text-align:right;">
+0.0811919
+</td>
+<td style="text-align:right;">
+0.0970166
+</td>
+<td style="text-align:right;">
+0.1153525
+</td>
+<td style="text-align:right;">
+0.0811872
+</td>
+<td style="text-align:right;">
+0.0000047
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pennsylvania
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.7
+</td>
+<td style="text-align:right;">
+0.1080035
+</td>
+<td style="text-align:right;">
+0.1093020
+</td>
+<td style="text-align:right;">
+0.1065356
+</td>
+<td style="text-align:right;">
+0.1078717
+</td>
+<td style="text-align:right;">
+0.1091690
+</td>
+<td style="text-align:right;">
+0.1064055
+</td>
+<td style="text-align:right;">
+0.0001318
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pennsylvania
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.3
+</td>
+<td style="text-align:right;">
+0.1133775
+</td>
+<td style="text-align:right;">
+0.1343693
+</td>
+<td style="text-align:right;">
+0.0949132
+</td>
+<td style="text-align:right;">
+0.1133730
+</td>
+<td style="text-align:right;">
+0.1343648
+</td>
+<td style="text-align:right;">
+0.0949088
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Rhode Island
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+11.1
+</td>
+<td style="text-align:right;">
+0.0902397
+</td>
+<td style="text-align:right;">
+0.0939079
+</td>
+<td style="text-align:right;">
+0.0869628
+</td>
+<td style="text-align:right;">
+0.0901504
+</td>
+<td style="text-align:right;">
+0.0938202
+</td>
+<td style="text-align:right;">
+0.0868723
+</td>
+<td style="text-align:right;">
+0.0000893
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Rhode Island
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.7
+</td>
+<td style="text-align:right;">
+0.0958209
+</td>
+<td style="text-align:right;">
+0.1123178
+</td>
+<td style="text-align:right;">
+0.0806161
+</td>
+<td style="text-align:right;">
+0.0958165
+</td>
+<td style="text-align:right;">
+0.1123129
+</td>
+<td style="text-align:right;">
+0.0806116
+</td>
+<td style="text-align:right;">
+0.0000045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Carolina
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+10.7
+</td>
+<td style="text-align:right;">
+0.1328803
+</td>
+<td style="text-align:right;">
+0.1354298
+</td>
+<td style="text-align:right;">
+0.1304814
+</td>
+<td style="text-align:right;">
+0.1327693
+</td>
+<td style="text-align:right;">
+0.1353205
+</td>
+<td style="text-align:right;">
+0.1303727
+</td>
+<td style="text-align:right;">
+0.0001110
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Carolina
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.2
+</td>
+<td style="text-align:right;">
+0.1362902
+</td>
+<td style="text-align:right;">
+0.1612432
+</td>
+<td style="text-align:right;">
+0.1152442
+</td>
+<td style="text-align:right;">
+0.1362628
+</td>
+<td style="text-align:right;">
+0.1612170
+</td>
+<td style="text-align:right;">
+0.1152165
+</td>
+<td style="text-align:right;">
+0.0000274
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Dakota
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+4.9
+</td>
+<td style="text-align:right;">
+0.0992961
+</td>
+<td style="text-align:right;">
+0.1028574
+</td>
+<td style="text-align:right;">
+0.0960334
+</td>
+<td style="text-align:right;">
+0.0991699
+</td>
+<td style="text-align:right;">
+0.1027361
+</td>
+<td style="text-align:right;">
+0.0959043
+</td>
+<td style="text-align:right;">
+0.0001262
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Dakota
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.0
+</td>
+<td style="text-align:right;">
+0.1111092
+</td>
+<td style="text-align:right;">
+0.1283257
+</td>
+<td style="text-align:right;">
+0.0965983
+</td>
+<td style="text-align:right;">
+0.1105772
+</td>
+<td style="text-align:right;">
+0.1278181
+</td>
+<td style="text-align:right;">
+0.0960305
+</td>
+<td style="text-align:right;">
+0.0005320
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tennessee
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+9.5
+</td>
+<td style="text-align:right;">
+0.1384549
+</td>
+<td style="text-align:right;">
+0.1406555
+</td>
+<td style="text-align:right;">
+0.1364718
+</td>
+<td style="text-align:right;">
+0.1382187
+</td>
+<td style="text-align:right;">
+0.1404288
+</td>
+<td style="text-align:right;">
+0.1362251
+</td>
+<td style="text-align:right;">
+0.0002362
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tennessee
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.4
+</td>
+<td style="text-align:right;">
+0.1426801
+</td>
+<td style="text-align:right;">
+0.1690188
+</td>
+<td style="text-align:right;">
+0.1205670
+</td>
+<td style="text-align:right;">
+0.1426757
+</td>
+<td style="text-align:right;">
+0.1690149
+</td>
+<td style="text-align:right;">
+0.1205624
+</td>
+<td style="text-align:right;">
+0.0000043
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Texas
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.2
+</td>
+<td style="text-align:right;">
+0.1062831
+</td>
+<td style="text-align:right;">
+0.1072218
+</td>
+<td style="text-align:right;">
+0.1052970
+</td>
+<td style="text-align:right;">
+0.1061582
+</td>
+<td style="text-align:right;">
+0.1071066
+</td>
+<td style="text-align:right;">
+0.1051707
+</td>
+<td style="text-align:right;">
+0.0001248
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Texas
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.6
+</td>
+<td style="text-align:right;">
+0.1043818
+</td>
+<td style="text-align:right;">
+0.1221327
+</td>
+<td style="text-align:right;">
+0.0878776
+</td>
+<td style="text-align:right;">
+0.1043254
+</td>
+<td style="text-align:right;">
+0.1220743
+</td>
+<td style="text-align:right;">
+0.0878213
+</td>
+<td style="text-align:right;">
+0.0000565
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Utah
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.7
+</td>
+<td style="text-align:right;">
+0.0931238
+</td>
+<td style="text-align:right;">
+0.0957647
+</td>
+<td style="text-align:right;">
+0.0907717
+</td>
+<td style="text-align:right;">
+0.0930051
+</td>
+<td style="text-align:right;">
+0.0956425
+</td>
+<td style="text-align:right;">
+0.0906516
+</td>
+<td style="text-align:right;">
+0.0001187
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Utah
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.7
+</td>
+<td style="text-align:right;">
+0.0950239
+</td>
+<td style="text-align:right;">
+0.1132023
+</td>
+<td style="text-align:right;">
+0.0803097
+</td>
+<td style="text-align:right;">
+0.0950191
+</td>
+<td style="text-align:right;">
+0.1131976
+</td>
+<td style="text-align:right;">
+0.0803043
+</td>
+<td style="text-align:right;">
+0.0000048
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Vermont
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+5.9
+</td>
+<td style="text-align:right;">
+0.0860256
+</td>
+<td style="text-align:right;">
+0.0891382
+</td>
+<td style="text-align:right;">
+0.0828063
+</td>
+<td style="text-align:right;">
+0.0857024
+</td>
+<td style="text-align:right;">
+0.0888275
+</td>
+<td style="text-align:right;">
+0.0825006
+</td>
+<td style="text-align:right;">
+0.0003232
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Vermont
+</td>
+<td style="text-align:left;">
+The Northeast
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.2
+</td>
+<td style="text-align:right;">
+0.0943389
+</td>
+<td style="text-align:right;">
+0.1055780
+</td>
+<td style="text-align:right;">
+0.0835375
+</td>
+<td style="text-align:right;">
+0.0943341
+</td>
+<td style="text-align:right;">
+0.1055733
+</td>
+<td style="text-align:right;">
+0.0835329
+</td>
+<td style="text-align:right;">
+0.0000047
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Virginia
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+6.6
+</td>
+<td style="text-align:right;">
+0.0958288
+</td>
+<td style="text-align:right;">
+0.0974177
+</td>
+<td style="text-align:right;">
+0.0942535
+</td>
+<td style="text-align:right;">
+0.0956698
+</td>
+<td style="text-align:right;">
+0.0972686
+</td>
+<td style="text-align:right;">
+0.0940988
+</td>
+<td style="text-align:right;">
+0.0001590
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Virginia
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+2.9
+</td>
+<td style="text-align:right;">
+0.0979943
+</td>
+<td style="text-align:right;">
+0.1157776
+</td>
+<td style="text-align:right;">
+0.0814210
+</td>
+<td style="text-align:right;">
+0.0979899
+</td>
+<td style="text-align:right;">
+0.1157732
+</td>
+<td style="text-align:right;">
+0.0814158
+</td>
+<td style="text-align:right;">
+0.0000044
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Washington
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.8
+</td>
+<td style="text-align:right;">
+0.0882179
+</td>
+<td style="text-align:right;">
+0.0898773
+</td>
+<td style="text-align:right;">
+0.0866828
+</td>
+<td style="text-align:right;">
+0.0881182
+</td>
+<td style="text-align:right;">
+0.0897778
+</td>
+<td style="text-align:right;">
+0.0865847
+</td>
+<td style="text-align:right;">
+0.0000997
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Washington
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+4.5
+</td>
+<td style="text-align:right;">
+0.0878487
+</td>
+<td style="text-align:right;">
+0.1043210
+</td>
+<td style="text-align:right;">
+0.0735370
+</td>
+<td style="text-align:right;">
+0.0878441
+</td>
+<td style="text-align:right;">
+0.1043164
+</td>
+<td style="text-align:right;">
+0.0735324
+</td>
+<td style="text-align:right;">
+0.0000046
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+West Virginia
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+8.3
+</td>
+<td style="text-align:right;">
+0.1540216
+</td>
+<td style="text-align:right;">
+0.1581685
+</td>
+<td style="text-align:right;">
+0.1503007
+</td>
+<td style="text-align:right;">
+0.1539333
+</td>
+<td style="text-align:right;">
+0.1580810
+</td>
+<td style="text-align:right;">
+0.1502146
+</td>
+<td style="text-align:right;">
+0.0000883
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+West Virginia
+</td>
+<td style="text-align:left;">
+The South
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+5.0
+</td>
+<td style="text-align:right;">
+0.1612593
+</td>
+<td style="text-align:right;">
+0.1901149
+</td>
+<td style="text-align:right;">
+0.1354392
+</td>
+<td style="text-align:right;">
+0.1612549
+</td>
+<td style="text-align:right;">
+0.1901103
+</td>
+<td style="text-align:right;">
+0.1354347
+</td>
+<td style="text-align:right;">
+0.0000044
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wisconsin
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+7.7
+</td>
+<td style="text-align:right;">
+0.0916341
+</td>
+<td style="text-align:right;">
+0.0934481
+</td>
+<td style="text-align:right;">
+0.0898954
+</td>
+<td style="text-align:right;">
+0.0915506
+</td>
+<td style="text-align:right;">
+0.0933645
+</td>
+<td style="text-align:right;">
+0.0898092
+</td>
+<td style="text-align:right;">
+0.0000835
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wisconsin
+</td>
+<td style="text-align:left;">
+The Midwest
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.1
+</td>
+<td style="text-align:right;">
+0.0950403
+</td>
+<td style="text-align:right;">
+0.1132492
+</td>
+<td style="text-align:right;">
+0.0788958
+</td>
+<td style="text-align:right;">
+0.0950121
+</td>
+<td style="text-align:right;">
+0.1132211
+</td>
+<td style="text-align:right;">
+0.0788703
+</td>
+<td style="text-align:right;">
+0.0000282
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wyoming
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:right;">
+6.5
+</td>
+<td style="text-align:right;">
+0.1114432
+</td>
+<td style="text-align:right;">
+0.1155195
+</td>
+<td style="text-align:right;">
+0.1077821
+</td>
+<td style="text-align:right;">
+0.1111883
+</td>
+<td style="text-align:right;">
+0.1152440
+</td>
+<td style="text-align:right;">
+0.1075324
+</td>
+<td style="text-align:right;">
+0.0002549
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wyoming
+</td>
+<td style="text-align:left;">
+The West
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+3.6
+</td>
+<td style="text-align:right;">
+0.1110319
+</td>
+<td style="text-align:right;">
+0.1252997
+</td>
+<td style="text-align:right;">
+0.0989110
+</td>
+<td style="text-align:right;">
+0.1110272
+</td>
+<td style="text-align:right;">
+0.1252952
+</td>
+<td style="text-align:right;">
+0.0989064
+</td>
+<td style="text-align:right;">
+0.0000046
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>Datas %&gt;% group_by(State) %&gt;% select(State, val, val.no, val.shocks) %&gt;% 
+    summarize_all(mean) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F) %&gt;% 
+    scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+State
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.no
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+val.shocks
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Alabama
+</td>
+<td style="text-align:right;">
+0.1507426
+</td>
+<td style="text-align:right;">
+0.1504564
+</td>
+<td style="text-align:right;">
+0.0002862
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Alaska
+</td>
+<td style="text-align:right;">
+0.1178502
+</td>
+<td style="text-align:right;">
+0.1174736
+</td>
+<td style="text-align:right;">
+0.0003766
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arizona
+</td>
+<td style="text-align:right;">
+0.1086540
+</td>
+<td style="text-align:right;">
+0.1085570
+</td>
+<td style="text-align:right;">
+0.0000970
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arkansas
+</td>
+<td style="text-align:right;">
+0.1458483
+</td>
+<td style="text-align:right;">
+0.1457204
+</td>
+<td style="text-align:right;">
+0.0001280
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+California
+</td>
+<td style="text-align:right;">
+0.0848648
+</td>
+<td style="text-align:right;">
+0.0848067
+</td>
+<td style="text-align:right;">
+0.0000581
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Colorado
+</td>
+<td style="text-align:right;">
+0.0943960
+</td>
+<td style="text-align:right;">
+0.0943022
+</td>
+<td style="text-align:right;">
+0.0000938
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Connecticut
+</td>
+<td style="text-align:right;">
+0.0834108
+</td>
+<td style="text-align:right;">
+0.0833338
+</td>
+<td style="text-align:right;">
+0.0000770
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Delaware
+</td>
+<td style="text-align:right;">
+0.1147857
+</td>
+<td style="text-align:right;">
+0.1146435
+</td>
+<td style="text-align:right;">
+0.0001422
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+District of Columbia
+</td>
+<td style="text-align:right;">
+0.1396328
+</td>
+<td style="text-align:right;">
+0.1395533
+</td>
+<td style="text-align:right;">
+0.0000795
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Florida
+</td>
+<td style="text-align:right;">
+0.1123801
+</td>
+<td style="text-align:right;">
+0.1123079
+</td>
+<td style="text-align:right;">
+0.0000722
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Georgia
+</td>
+<td style="text-align:right;">
+0.1176429
+</td>
+<td style="text-align:right;">
+0.1175110
+</td>
+<td style="text-align:right;">
+0.0001319
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hawaii
+</td>
+<td style="text-align:right;">
+0.0877098
+</td>
+<td style="text-align:right;">
+0.0876403
+</td>
+<td style="text-align:right;">
+0.0000695
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Idaho
+</td>
+<td style="text-align:right;">
+0.0970074
+</td>
+<td style="text-align:right;">
+0.0968775
+</td>
+<td style="text-align:right;">
+0.0001298
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Illinois
+</td>
+<td style="text-align:right;">
+0.0989983
+</td>
+<td style="text-align:right;">
+0.0989292
+</td>
+<td style="text-align:right;">
+0.0000692
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Indiana
+</td>
+<td style="text-align:right;">
+0.1225940
+</td>
+<td style="text-align:right;">
+0.1225255
+</td>
+<td style="text-align:right;">
+0.0000685
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Iowa
+</td>
+<td style="text-align:right;">
+0.0959939
+</td>
+<td style="text-align:right;">
+0.0958874
+</td>
+<td style="text-align:right;">
+0.0001065
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kansas
+</td>
+<td style="text-align:right;">
+0.1052186
+</td>
+<td style="text-align:right;">
+0.1051052
+</td>
+<td style="text-align:right;">
+0.0001134
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kentucky
+</td>
+<td style="text-align:right;">
+0.1487110
+</td>
+<td style="text-align:right;">
+0.1485253
+</td>
+<td style="text-align:right;">
+0.0001857
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Louisiana
+</td>
+<td style="text-align:right;">
+0.1484803
+</td>
+<td style="text-align:right;">
+0.1483685
+</td>
+<td style="text-align:right;">
+0.0001118
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maine
+</td>
+<td style="text-align:right;">
+0.1021912
+</td>
+<td style="text-align:right;">
+0.1020975
+</td>
+<td style="text-align:right;">
+0.0000937
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Maryland
+</td>
+<td style="text-align:right;">
+0.1050020
+</td>
+<td style="text-align:right;">
+0.1049177
+</td>
+<td style="text-align:right;">
+0.0000843
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Massachusetts
+</td>
+<td style="text-align:right;">
+0.0889713
+</td>
+<td style="text-align:right;">
+0.0888913
+</td>
+<td style="text-align:right;">
+0.0000800
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Michigan
+</td>
+<td style="text-align:right;">
+0.1162114
+</td>
+<td style="text-align:right;">
+0.1161498
+</td>
+<td style="text-align:right;">
+0.0000616
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minnesota
+</td>
+<td style="text-align:right;">
+0.0790679
+</td>
+<td style="text-align:right;">
+0.0790249
+</td>
+<td style="text-align:right;">
+0.0000430
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Mississippi
+</td>
+<td style="text-align:right;">
+0.1598904
+</td>
+<td style="text-align:right;">
+0.1596958
+</td>
+<td style="text-align:right;">
+0.0001946
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Missouri
+</td>
+<td style="text-align:right;">
+0.1235683
+</td>
+<td style="text-align:right;">
+0.1233395
+</td>
+<td style="text-align:right;">
+0.0002288
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Montana
+</td>
+<td style="text-align:right;">
+0.1152485
+</td>
+<td style="text-align:right;">
+0.1150432
+</td>
+<td style="text-align:right;">
+0.0002054
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nebraska
+</td>
+<td style="text-align:right;">
+0.0922092
+</td>
+<td style="text-align:right;">
+0.0921125
+</td>
+<td style="text-align:right;">
+0.0000967
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nevada
+</td>
+<td style="text-align:right;">
+0.1115195
+</td>
+<td style="text-align:right;">
+0.1113227
+</td>
+<td style="text-align:right;">
+0.0001967
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Hampshire
+</td>
+<td style="text-align:right;">
+0.0948261
+</td>
+<td style="text-align:right;">
+0.0947602
+</td>
+<td style="text-align:right;">
+0.0000659
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Jersey
+</td>
+<td style="text-align:right;">
+0.0894257
+</td>
+<td style="text-align:right;">
+0.0893765
+</td>
+<td style="text-align:right;">
+0.0000491
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Mexico
+</td>
+<td style="text-align:right;">
+0.1323678
+</td>
+<td style="text-align:right;">
+0.1322887
+</td>
+<td style="text-align:right;">
+0.0000792
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New York
+</td>
+<td style="text-align:right;">
+0.0869243
+</td>
+<td style="text-align:right;">
+0.0868526
+</td>
+<td style="text-align:right;">
+0.0000717
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Carolina
+</td>
+<td style="text-align:right;">
+0.1150870
+</td>
+<td style="text-align:right;">
+0.1150046
+</td>
+<td style="text-align:right;">
+0.0000823
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North Dakota
+</td>
+<td style="text-align:right;">
+0.1050917
+</td>
+<td style="text-align:right;">
+0.1048526
+</td>
+<td style="text-align:right;">
+0.0002391
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Ohio
+</td>
+<td style="text-align:right;">
+0.1241559
+</td>
+<td style="text-align:right;">
+0.1240691
+</td>
+<td style="text-align:right;">
+0.0000868
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oklahoma
+</td>
+<td style="text-align:right;">
+0.1471233
+</td>
+<td style="text-align:right;">
+0.1469805
+</td>
+<td style="text-align:right;">
+0.0001428
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oregon
+</td>
+<td style="text-align:right;">
+0.0977141
+</td>
+<td style="text-align:right;">
+0.0976111
+</td>
+<td style="text-align:right;">
+0.0001029
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pennsylvania
+</td>
+<td style="text-align:right;">
+0.1107127
+</td>
+<td style="text-align:right;">
+0.1106594
+</td>
+<td style="text-align:right;">
+0.0000533
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Rhode Island
+</td>
+<td style="text-align:right;">
+0.0945686
+</td>
+<td style="text-align:right;">
+0.0945388
+</td>
+<td style="text-align:right;">
+0.0000298
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Carolina
+</td>
+<td style="text-align:right;">
+0.1356092
+</td>
+<td style="text-align:right;">
+0.1355132
+</td>
+<td style="text-align:right;">
+0.0000960
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Dakota
+</td>
+<td style="text-align:right;">
+0.1076493
+</td>
+<td style="text-align:right;">
+0.1075057
+</td>
+<td style="text-align:right;">
+0.0001436
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tennessee
+</td>
+<td style="text-align:right;">
+0.1424336
+</td>
+<td style="text-align:right;">
+0.1422928
+</td>
+<td style="text-align:right;">
+0.0001408
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Texas
+</td>
+<td style="text-align:right;">
+0.1059036
+</td>
+<td style="text-align:right;">
+0.1058324
+</td>
+<td style="text-align:right;">
+0.0000712
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Utah
+</td>
+<td style="text-align:right;">
+0.0951759
+</td>
+<td style="text-align:right;">
+0.0950833
+</td>
+<td style="text-align:right;">
+0.0000926
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Vermont
+</td>
+<td style="text-align:right;">
+0.0906689
+</td>
+<td style="text-align:right;">
+0.0903323
+</td>
+<td style="text-align:right;">
+0.0003366
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Virginia
+</td>
+<td style="text-align:right;">
+0.0969198
+</td>
+<td style="text-align:right;">
+0.0968337
+</td>
+<td style="text-align:right;">
+0.0000861
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Washington
+</td>
+<td style="text-align:right;">
+0.0888997
+</td>
+<td style="text-align:right;">
+0.0888020
+</td>
+<td style="text-align:right;">
+0.0000977
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+West Virginia
+</td>
+<td style="text-align:right;">
+0.1584753
+</td>
+<td style="text-align:right;">
+0.1583830
+</td>
+<td style="text-align:right;">
+0.0000923
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wisconsin
+</td>
+<td style="text-align:right;">
+0.0937350
+</td>
+<td style="text-align:right;">
+0.0936891
+</td>
+<td style="text-align:right;">
+0.0000460
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wyoming
+</td>
+<td style="text-align:right;">
+0.1123026
+</td>
+<td style="text-align:right;">
+0.1120713
+</td>
+<td style="text-align:right;">
+0.0002312
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>Datas %&gt;% filter(unemployment_rate == min(unemployment_rate)) %&gt;% 
+    select(State, year, unemployment_rate) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, 
+    full_width = F)</code></pre>
+<table class=" lightable-paper lightable-hover" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<thead>
+<tr>
+<th style="text-align:left;">
+State
+</th>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:right;">
+unemployment_rate
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Hawaii
+</td>
+<td style="text-align:right;">
+2018
+</td>
+<td style="text-align:right;">
+2.1
+</td>
+</tr>
+</tbody>
+</table>
+<p>The above tables higlight data that I found interesting. The First table filters for only the first and last year of the data set and is ordered by state, making it easy to see comparisons over time in each state. The second table shows the values for probability of death grouped and summarized by state. This table has the values with and without shocks as well as the difference between the two. Lastly, CONGRATS to Hawaii for having the record low unemployment rate of any state in any year, at a 2.1 in 2018!</p>
+</div>
+</div>
+<div id="visualizing" class="section level2">
+<h2>4. Visualizing</h2>
+<pre class="r"><code>corMatrix &lt;- Datas %&gt;% select_if(is.numeric) %&gt;% cor(use = &quot;pair&quot;)
+tidycor &lt;- corMatrix %&gt;% as.data.frame %&gt;% rownames_to_column(&quot;var1&quot;) %&gt;% 
+    pivot_longer(-1, names_to = &quot;var2&quot;, values_to = &quot;correlation&quot;)
+tidycor %&gt;% ggplot(aes(var1, var2, fill = correlation)) + geom_tile() + 
+    geom_text(aes(label = round(correlation, 2)), color = &quot;black&quot;, 
+        size = 3) + theme(axis.text.x = element_text(angle = 90, 
+    hjust = 1)) + scale_fill_gradient2(low = &quot;dark blue&quot;, mid = &quot;white&quot;, 
+    high = &quot;dark red&quot;) + ggtitle(&quot;Correlation Heatmap&quot;)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" />
+The above figure is that of a correlational heat map. It is seen that the values of probability of death are close in correlation for the values with and without shock. This signifies that the shock does not change the values significantly. Secondly the year and unemployment rates have a strong negative correlation meaning that as the years increase the unemployment rate drops over time.</p>
+<pre class="r"><code>ggplot(data = Datas, aes(x = year, y = unemployment_rate, color = State)) + 
+    geom_line(method = &quot;lm&quot;) + geom_point(color = &quot;white&quot;) + 
+    theme(legend.position = &quot;none&quot;) + labs(title = &quot;Unemployment vs. Year&quot;, 
+    x = &quot;Time (year)&quot;, y = &quot;Unemployment rates&quot;) + facet_wrap(~Region) + 
+    scale_x_continuous(breaks = seq(2011, 2019, 2)) + theme()</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" />
+The above plot shows unemployment rates vs time and is grouped by region. These plots help to show that the unemplyoment rates have gone down in time regardelss of region but that they have gone down the most in the West region and that the Midwest and the South have seen the least amount of changes.</p>
+<pre class="r"><code>ggplot(Datas, aes(State, val, )) + geom_errorbar(aes(ymin = lower, 
+    ymax = upper, color = State), stat = &quot;summary&quot;) + facet_wrap(~Region, 
+    scale = &quot;free_y&quot;, ) + geom_point(aes(y = val, color = State), 
+    stat = &quot;summary&quot;) + theme(legend.position = &quot;none&quot;) + theme(axis.text.x = element_text(angle = 90, 
+    hjust = 1, size = 0.5)) + coord_flip() + theme(axis.text.x = element_text(size = 7.1))</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" />
+The above plot breaks down the value of probability of death by region. The error bars are fitted to be the upper and lower values found in the data set. Hence, here instead of the error bars showing a probability of error as calculated by R, they show an error probability as calculated by the people who collected this data; this means that the error bars are more suited to this individual case.</p>
+</div>
+<div id="dimensionality-reduction" class="section level2">
+<h2>5. Dimensionality Reduction</h2>
+<pre class="r"><code>library(cluster)
+
+pam_data &lt;- Datas %&gt;% select(unemployment_rate, val)
+sil_width &lt;- vector()
+for (i in 2:10) {
+    pam_fit &lt;- pam(pam_data, k = i)
+    sil_width[i] &lt;- pam_fit$silinfo$avg.width
+}
+ggplot() + geom_line(aes(x = 1:10, y = sil_width)) + scale_x_continuous(name = &quot;k&quot;, 
+    breaks = 1:10)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>pam1 &lt;- Datas %&gt;% select(unemployment_rate, val) %&gt;% pam(k = 2)
+pamclust = Datas %&gt;% mutate(cluster = as.factor(pam1$clustering))
+pamclust %&gt;% ggplot(aes(unemployment_rate, val, color = cluster)) + 
+    geom_point()</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-10-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>pamclust %&gt;% group_by(cluster) %&gt;% select(cluster, unemployment_rate, 
+    val) %&gt;% summarize_if(is.numeric, mean, na.rm = T) %&gt;% kbl() %&gt;% 
+    kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F, 
+        position = &quot;center&quot;)</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+cluster
+</th>
+<th style="text-align:right;">
+unemployment_rate
+</th>
+<th style="text-align:right;">
+val
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:right;">
+7.669588
+</td>
+<td style="text-align:right;">
+0.1146267
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:right;">
+4.165283
+</td>
+<td style="text-align:right;">
+0.1094852
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pam1$silinfo$avg.width %&gt;% kbl() %&gt;% kable_styling(bootstrap_options = &quot;striped&quot;, 
+    full_width = F, position = &quot;center&quot;)</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+x
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0.6056582
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pam_data &lt;- Datas %&gt;% select(unemployment_rate, val.no)
+sil_width &lt;- vector()
+for (i in 2:10) {
+    pam_fit &lt;- pam(pam_data, k = i)
+    sil_width[i] &lt;- pam_fit$silinfo$avg.width
+}
+ggplot() + geom_line(aes(x = 1:10, y = sil_width)) + scale_x_continuous(name = &quot;k&quot;, 
+    breaks = 1:10)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-10-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>pam1 &lt;- Datas %&gt;% select(unemployment_rate, val.no) %&gt;% pam(k = 2)
+pamclust = Datas %&gt;% mutate(cluster = as.factor(pam1$clustering))
+pamclust %&gt;% ggplot(aes(unemployment_rate, val.no, color = cluster)) + 
+    geom_point()</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-10-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>pamclust %&gt;% group_by(cluster) %&gt;% select(cluster, unemployment_rate, 
+    val.no) %&gt;% summarize_if(is.numeric, mean, na.rm = T) %&gt;% 
+    kbl() %&gt;% kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F, 
+    position = &quot;center&quot;)</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+cluster
+</th>
+<th style="text-align:right;">
+unemployment_rate
+</th>
+<th style="text-align:right;">
+val.no
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:right;">
+7.669588
+</td>
+<td style="text-align:right;">
+0.1144703
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:right;">
+4.165283
+</td>
+<td style="text-align:right;">
+0.1093918
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pam1$silinfo$avg.width %&gt;% kbl() %&gt;% kable_styling(bootstrap_options = &quot;striped&quot;, 
+    full_width = F, position = &quot;center&quot;)</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+x
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0.6056584
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pam_data &lt;- Datas %&gt;% select(unemployment_rate, val.shocks)
+sil_width &lt;- vector()
+for (i in 2:10) {
+    pam_fit &lt;- pam(pam_data, k = i)
+    sil_width[i] &lt;- pam_fit$silinfo$avg.width
+}
+ggplot() + geom_line(aes(x = 1:10, y = sil_width)) + scale_x_continuous(name = &quot;k&quot;, 
+    breaks = 1:10)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-10-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>pam1 &lt;- Datas %&gt;% select(unemployment_rate, val.shocks) %&gt;% pam(k = 2)
+pamclust = Datas %&gt;% mutate(cluster = as.factor(pam1$clustering))
+pamclust %&gt;% ggplot(aes(unemployment_rate, val.shocks, color = cluster)) + 
+    geom_point()</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-10-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>pamclust %&gt;% group_by(cluster) %&gt;% select(cluster, unemployment_rate, 
+    val.shocks) %&gt;% summarize_if(is.numeric, mean, na.rm = T) %&gt;% 
+    kbl() %&gt;% kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F, 
+    position = &quot;center&quot;)</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+cluster
+</th>
+<th style="text-align:right;">
+unemployment_rate
+</th>
+<th style="text-align:right;">
+val.shocks
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:right;">
+7.669588
+</td>
+<td style="text-align:right;">
+0.0001564
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:right;">
+4.165283
+</td>
+<td style="text-align:right;">
+0.0000933
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pam1$silinfo$avg.width %&gt;% kbl() %&gt;% kable_styling(bootstrap_options = &quot;striped&quot;, 
+    full_width = F, position = &quot;center&quot;)</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+x
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0.6061034
+</td>
+</tr>
+</tbody>
+</table>
+<p>Using the val, val.no, and val.shocks variables as compared to the unemployment rates all of these comparisons have 2 clusters and it is clear that there is a defined clusters for each but there is overlap that makes these comparisons not reliable.</p>
+<p>Thank you for taking time to read through this project! :)</p>
+<p>…</p>
+</div>
+
+            
+        <hr>         <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div> 
+            </div>
+          </div>
+
+   <hr>  <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div> 
+        </div>
+      </div>
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="../../js/docs.min.js"></script>
+<script src="../../js/main.js"></script>
+
+<script src="../../js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>

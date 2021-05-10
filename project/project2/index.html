@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Raul Contreras" />
+    
+    <link rel="shortcut icon" type="image/x-icon" href="../../img/favicon.ico">
+    <title>Project 2: Modeling, Testing, and Predicting</title>
+    <meta name="generator" content="Hugo 0.83.1" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../../css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="../../"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="../../post/">BLOG</a></li>
+        
+        <li><a href="../../projects/">PROJECTS</a></li>
+        
+        <li><a href="../../resume/">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="../../project/project2/">Project 2: Modeling, Testing, and Predicting</a></strong>
+          </h3>
+        </div>
+ 
+<div class="blog-title">
+          <h4>
+         January 1, 0001 
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+
+
+<div id="introduction-of-dataset" class="section level2">
+<h2>Introduction of Dataset</h2>
+<p><em>The dataset being used for this project was pulled from the “Epi” package and is called “diet.” This dataset contains information on diets and other variables on a total of 337 individuals (this was shortened to 328 do to NAs). Variable y is the number of years at risk for coronary heart disease. Variable job is the individuals occupation and is categorical for either Driver, Conductor, or Bank worker. Variable energy is the total energy intake in kCal per day/100/ Height and weight are measured in cm and kg respectively. The variables fat and fibre are the intakes for each measured in 10g/day. The variable energy.grp groups bu daily energy intake; it is a categorical with the two levels of &lt;=2750 KCal and &gt;2750 KCal. Lastly chd is if the individual has coronary heart disease.</em></p>
+<pre class="r"><code>install.packages(&quot;Epi&quot;, repos = &quot;http://cran.us.r-project.org&quot;)
+library(&quot;Epi&quot;)
+data(diet)
+diet2.0 &lt;- diet %&gt;% na.omit</code></pre>
+</div>
+<div id="manova-testing" class="section level2">
+<h2>1. MANOVA Testing</h2>
+<div id="assumptions" class="section level3">
+<h3>Assumptions</h3>
+<p><em>The following tests will investigate assumptions that are to be met in a MANOVA.</em></p>
+<div id="multivariate-normality-assumption" class="section level4">
+<h4>Multivariate Normality Assumption</h4>
+<pre class="r"><code>group &lt;- diet2.0$energy.grp
+DVs &lt;- diet2.0 %&gt;% select(y,energy,height,weight,fat,fibre)
+sapply(split(DVs,group), mshapiro_test)</code></pre>
+<pre><code>##           &lt;=2750 KCals &gt;2750 KCals 
+## statistic 0.9297427    0.834308    
+## p.value   1.024356e-06 5.464934e-13</code></pre>
+<p><em>Here a a formal test of multivariate normality assumption was done but the null is rejected with the two p values of 1.024356e-06 and 5.464934e-13 for the two groups of “&lt;=2750 KCals” and “&gt;2750 KCals” respectively which means the multivariate normality assumption is not met.</em></p>
+</div>
+<div id="homogeneity-of-covariance" class="section level4">
+<h4>Homogeneity of Covariance</h4>
+<pre class="r"><code>box_m(DVs, group)</code></pre>
+<pre><code>## # A tibble: 1 x 4
+## statistic p.value parameter method
+## &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;
+## 1 60.4 0.0000112 21 Box&#39;s M-test for Homogeneity of
+Covariance Matrices</code></pre>
+<p><em>A second assumption that was investigated with formal test was that of homogeneity of covariance. The p value was found to be 1.12193e-05 meaning the homogeneity of covariance was not met</em></p>
+<p><em>Additional Assumptions of MANOVA include random samples and independent observations neither of which can be investigated further for the dataset. Overall, the assumptions are hard to meet but we will continue with the MANOVA.</em></p>
+</div>
+</div>
+<div id="overall-manova" class="section level3">
+<h3>Overall MANOVA</h3>
+<pre class="r"><code>man1&lt;-manova(cbind(y,energy,height,weight,fat,fibre)~energy.grp, data=diet2.0)
+summary(man1)</code></pre>
+<pre><code>## Df Pillai approx F num Df den Df Pr(&gt;F)
+## energy.grp 1 0.60395 81.583 6 321 &lt; 2.2e-16 ***
+## Residuals 326
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p><em>A one-way MANOVA was conducted to determine the effect of the energy group (&lt;=2750 KCals or &gt;2750 KCals) on the dependent numeric variables y,energy,height,weight,fat, and fibre. In the MANOVA significant differences were found among the two energy groups for at least one of the dependent variables Pillai trace = 0.60395, pseudo F(6, 321)= 81.583, p &lt; 2.2e-16, thus follow up ANOVAs will be done.</em></p>
+</div>
+<div id="follow-up-one-way-anovas" class="section level3">
+<h3>Follow-up One-Way ANOVAs</h3>
+<pre class="r"><code>summary.aov(man1)</code></pre>
+<pre><code>## Response y :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## energy.grp 1 40.1 40.093 1.7888 0.182
+## Residuals 326 7306.6 22.413
+##
+## Response energy :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## energy.grp 1 3836.8 3836.8 489.37 &lt; 2.2e-16 ***
+## Residuals 326 2555.9 7.8
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response height :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## energy.grp 1 135.1 135.124 3.2721 0.07139 .
+## Residuals 326 13462.4 41.296
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response weight :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## energy.grp 1 1900 1900.00 17.404 3.88e-05 ***
+## Residuals 326 35590 109.17
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response fat :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## energy.grp 1 772.0 772.0 233.88 &lt; 2.2e-16 ***
+## Residuals 326 1076.1 3.3
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response fibre :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## energy.grp 1 17.942 17.9416 67.777 4.463e-15 ***
+## Residuals 326 86.297 0.2647
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p><em>Univariate ANOVAs for each dependent variable were conducted as follow-up tests to the MANOVA, using the Bonferroni method for controlling Type I error rates for multiple comparisons. The univariate ANOVAs for energy, weight, fat, and fibre were also significant, F(1, 326), p &lt; 2.2e-16 and F(1, 326), p = 3.88e-05, and F(1, 326), p &lt; 2.2e-16 and F(1, 326), p = 4.463e-15 respectively.</em></p>
+</div>
+<div id="pair-wise-t-tests" class="section level3">
+<h3>Pair-Wise T Tests</h3>
+<pre class="r"><code>diet2.0%&gt;%group_by(energy.grp)%&gt;%summarize(mean(energy),mean(weight),mean(fat),mean(fibre))</code></pre>
+<pre><code>## # A tibble: 2 x 5
+## energy.grp `mean(energy)` `mean(weight)` `mean(fat)`
+`mean(fibre)`
+## &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 &lt;=2750 KCals 24.6 69.8 11.1 1.47
+## 2 &gt;2750 KCals 31.5 74.6 14.2 1.94</code></pre>
+<pre class="r"><code>pairwise.t.test(diet2.0$energy, diet2.0$energy.grp, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  diet2.0$energy and diet2.0$energy.grp 
+## 
+##             &lt;=2750 KCals
+## &gt;2750 KCals &lt;2e-16      
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(diet2.0$weight, diet2.0$energy.grp, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  diet2.0$weight and diet2.0$energy.grp 
+## 
+##             &lt;=2750 KCals
+## &gt;2750 KCals 3.9e-05     
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(diet2.0$fat, diet2.0$energy.grp, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  diet2.0$fat and diet2.0$energy.grp 
+## 
+##             &lt;=2750 KCals
+## &gt;2750 KCals &lt;2e-16      
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(diet2.0$fibre, diet2.0$energy.grp, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  diet2.0$fibre and diet2.0$energy.grp 
+## 
+##             &lt;=2750 KCals
+## &gt;2750 KCals 4.5e-15     
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>1- 0.95^15</code></pre>
+<pre><code>## [1] 0.5367088</code></pre>
+<pre class="r"><code>0.05/15</code></pre>
+<pre><code>## [1] 0.003333333</code></pre>
+<p><em>Post hoc analysis was performed conducting pairwise comparisons to determine which energy groups differed in energy, weight, fat, and fibre. Both energy groups were found to differ significantly from each other in terms of energy, weight, fat, and fibre after adjusting for multiple comparisons (bonferroni α=.05/15= 0.00333). A total of 1 MANOVA, 6 ANOVAs, and 8 t tests, so 15 tests in total.</em></p>
+</div>
+</div>
+<div id="randomization" class="section level2">
+<h2>2. Randomization</h2>
+<pre class="r"><code>diet3.0 &lt;- diet2.0 %&gt;% filter(energy.grp == &quot;&lt;=2750 KCals&quot; | energy.grp == &quot;&gt;2750 KCals&quot;)
+
+rand_dist&lt;-vector()
+
+for(i in 1:5000) {
+  new&lt;-data.frame(height= sample(diet3.0$height),
+                  energy.grp=diet3.0$energy.grp)
+  rand_dist[i]&lt;-mean(new[new$energy.grp==&quot;&lt;=2750 KCals&quot;,]$height)-
+              mean(new[new$energy.grp==&quot;&gt;2750 KCals&quot;,]$height)
+  }
+
+diet3.0%&gt;%group_by(energy.grp)%&gt;%summarize(means=mean(height))%&gt;%summarize(`mean_diff`=diff(means))</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   mean_diff
+##       &lt;dbl&gt;
+## 1      1.29</code></pre>
+<pre class="r"><code>mean(rand_dist &gt; 1.289089        | rand_dist &lt; -1.289089    )</code></pre>
+<pre><code>## [1] 0.0666</code></pre>
+<pre class="r"><code>hist(rand_dist,main=&quot;&quot;,ylab=&quot;&quot;); abline(v = c(-1.289089 , 1.289089  ),col=&quot;red&quot;)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-7-1.png" width="768" style="display: block; margin: auto;" />
+<em>The null hypothesis for the randomization test is that heights are the same for people who consume &lt;=2750 KCals or &gt;2750 KCals and the alternative hypothesis states that heights are different for people who consume &lt;=2750 KCals or &gt;2750 KCals. The p-value for this model was found to be 0.0678. This means that the difference in heights is not significant between the two kcal consumption groups. The plot visualization shows that the probability of a mean difference of at least 1.289 is is not less than 0.05. Together this means the data is not able to reject the null hypothesis.</em></p>
+</div>
+<div id="linear-regression-model" class="section level2">
+<h2>3. Linear Regression Model</h2>
+<pre class="r"><code>diet2.0$fat_c &lt;- diet2.0$fat - mean(diet2.0$fat)
+fit &lt;- lm(diet2.0$energy ~ diet2.0$fat_c * diet2.0$job)
+summary(fit)</code></pre>
+<pre><code>##
+## Call:
+## lm(formula = diet2.0$energy ~ diet2.0$fat_c *
+diet2.0$job)
+##
+## Residuals:
+## Min 1Q Median 3Q Max
+## -6.5131 -1.6921 0.0662 1.6859 7.0973
+##
+## Coefficients:
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 28.4186 0.2407 118.051 &lt;2e-16 ***
+## diet2.0$fat_c 1.7289 0.1046 16.526 &lt;2e-16 ***
+## diet2.0$jobConductor 0.2122 0.3556 0.597 0.5512
+## diet2.0$jobBank worker -0.2429 0.3109 -0.781 0.4352
+## diet2.0$fat_c:diet2.0$jobConductor -0.1131 0.1500 -0.754
+0.4512
+## diet2.0$fat_c:diet2.0$jobBank worker -0.2836 0.1332
+-2.128 0.0341 *
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Residual standard error: 2.38 on 322 degrees of freedom
+## Multiple R-squared: 0.7147, Adjusted R-squared: 0.7103
+## F-statistic: 161.3 on 5 and 322 DF, p-value: &lt; 2.2e-16</code></pre>
+<p><em>This linear regression model uses fat intake and job occupation to predict total energy intake. It was found that for individuals with the occupation Driver with a mean fat, the energy is 28.4186 lower than the mean energy. The model also shows that for every 1 increase in fat intake predicted energy intake is increased by 1.7289 for individuals with the occupation Driver. For Conductors at a mean fat intake the predicted energy is 0.2112 higher as compared to Drivers at a mean fat intake; this was not significant. For Bank workers at a mean fat intake the predicted energy is 0.2429 lower as compared to Drivers at a mean fat intake; this was also not found to be significant. Slope of fat on energy for Conductors is 0.1131 lower than for Drivers; this result was not significant. Slope of fat on energy for Bank workers is 0.2836 lower than for Drivers; this result was found to be significant. The last interpretation of this model is that Multiple R-squared which shows that 71.47 percent of variability can be explaines by the model. </em></p>
+<div id="linear-regression-plot" class="section level3">
+<h3>Linear Regression Plot</h3>
+<pre class="r"><code>diet2.0 %&gt;% select(energy, fat_c, job) %&gt;% ggplot(aes(fat_c, energy, color=job)) + geom_point()+geom_smooth(method=&quot;lm&quot;) + geom_vline(xintercept=mean(diet2.0$fat_c), na.rm=T,lty=2)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-9-1.png" width="768" style="display: block; margin: auto;" />
+### Assumptions</p>
+<pre class="r"><code>resids &lt;- fit$residuals
+fitvals &lt;- fit$fitted.values
+ggplot() + geom_point(aes(fitvals, resids)) + geom_hline(yintercept=0, color=&quot;red&quot;)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-10-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ks.test(resids, &quot;pnorm&quot;, mean=0, sd(resids))</code></pre>
+<pre><code>## 
+##  One-sample Kolmogorov-Smirnov test
+## 
+## data:  resids
+## D = 0.031717, p-value = 0.8962
+## alternative hypothesis: two-sided</code></pre>
+<p><em>The One-sample Kolmogorov-Smirnov test had a p-value of 0.8962, meaning the normailty assumption has been met. Secondly there is no fanning out seen in the graph meaning that homoskedasticity is met.</em></p>
+</div>
+<div id="linear-regression-results-with-rses" class="section level3">
+<h3>Linear Regression results with RSEs</h3>
+<pre class="r"><code>coeftest(fit, vcoc = vcovHC(fit))</code></pre>
+<pre><code>##
+## t test of coefficients:
+##
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 28.41865 0.24073 118.0512 &lt; 2e-16 ***
+## diet2.0$fat_c 1.72890 0.10462 16.5261 &lt; 2e-16 ***
+## diet2.0$jobConductor 0.21216 0.35565 0.5965 0.55123
+## diet2.0$jobBank worker -0.24294 0.31093 -0.7813 0.43518
+## diet2.0$fat_c:diet2.0$jobConductor -0.11311 0.14996
+-0.7543 0.45122
+## diet2.0$fat_c:diet2.0$jobBank worker -0.28357 0.13323
+-2.1284 0.03407 *
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p><em>The linear regression model with robust standard errors shows that the effects on energy intake once again from job and fat intake. The significance has not changed for any of the results after introducing robust standard errors.</em></p>
+</div>
+</div>
+<div id="linear-regression-modeling-with-bses" class="section level2">
+<h2>4. Linear Regression Modeling with BSEs</h2>
+<pre class="r"><code>samp_distn &lt;- replicate(5000, {
+  boot_dat &lt;- sample_frac(diet2.0,replace=T)
+  fit2.0 &lt;-lm(energy ~ fat_c * job, data = boot_dat)
+  coef(fit2.0)
+})
+samp_distn %&gt;% t %&gt;% as.data.frame %&gt;% summarize_all(sd)</code></pre>
+<pre><code>## (Intercept) fat_c jobConductor jobBank worker
+fat_c:jobConductor fat_c:jobBank worker
+## 1 0.2421907 0.1032188 0.3597387 0.3107695 0.1474519
+0.1362357</code></pre>
+<p><em>After rerunning the regression model with bootstrapped standard errors, it was found that fat_c, jobBank worker, fat_c:jobConductor decreased compared to the original SEs and jobconductor and fat_c:jobBank worker both increased compared to the original SEs. This means that the p-values for jobconductor and fat_c:jobBank worker also increased.</em></p>
+<p><em>After rerunning the regression model with bootstrapped standard errors, it was found that fat_c, jobBank worker, fat_c:jobConductor decreased compared to the RSE SEs and jobconductor and fat_c:jobBank worker both increased compared to the RSE SEs. This means that the p-values for jobconductor and fat_c:jobBank worker also increased.</em></p>
+</div>
+<div id="logistic-regression-to-predict-binary-variable" class="section level2">
+<h2>5. Logistic Regression to predict binary variable</h2>
+<div id="logistic-regression" class="section level3">
+<h3>Logistic Regression</h3>
+<pre class="r"><code>Logregression &lt;- glm(chd ~ y + energy, data=diet2.0, family=binomial(link=&quot;logit&quot;))
+exp(coef(Logregression))</code></pre>
+<pre><code>## (Intercept)           y      energy 
+##  28.2407651   0.7609841   0.9280014</code></pre>
+<p><em>This model shows that for a 1 increase in y controlling for energy the odds of chd being a chd event is -0.2731 while a 1 increase in energy controlling for y the odds of chd being a chd event is -0.07472202. This data shows that y has a greater effect on the odds of a chd event than energy does.</em></p>
+</div>
+<div id="confusion-matrix-and-accuracy-sensitivity-and-specificity" class="section level3">
+<h3>Confusion Matrix and Accuracy, Sensitivity, and Specificity</h3>
+<pre class="r"><code>probability &lt;- predict(Logregression, type= &quot;response&quot;)
+class_diag(probability, diet2.0$chd)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.8841463 0.3863636 0.9612676 0.6071429 0.8516325</code></pre>
+<pre class="r"><code>table(predict = as.numeric(probability &gt; 0.5 ), truth = diet2.0$chd) %&gt;% addmargins</code></pre>
+<pre><code>##        truth
+## predict   0   1 Sum
+##     0   273  27 300
+##     1    11  17  28
+##     Sum 284  44 328</code></pre>
+<p><em>The accuracy for the model was found to be 0.8841463; this is the proportion of correctly classified cases. The sensitivity was 0.3863636; this is the proportion of no event chd cases correctly classified. The specificity is 0.9612676; this is the proportion of chd event cases correctly classified. The precision was 0.6071429; this is the proportion of classified no event chd cases that are no event chd cases. The AUC was 0.8516325; this is the probability that a randomly selected person with chd has a higher predicted probability than a randomly selected person without chd; this AUC is classified as good.</em></p>
+</div>
+<div id="density-plot" class="section level3">
+<h3>Density Plot</h3>
+<pre class="r"><code>diet2.0 &lt;- diet2.0 %&gt;% mutate(Platform=ifelse(chd==1, &quot;CHD event&quot;, &quot;no event&quot;))
+diet2.0$logit &lt;- predict(Logregression, type= &quot;link&quot;)
+diet2.0 %&gt;% mutate(Platform=as.factor(Platform)) %&gt;% ggplot() + geom_density(aes(logit, fill=Platform), alpha=0.4) + theme(legend.position=c(0.85, 0.85)) + xlab(&quot;logit(log-odds)&quot;) +geom_vline(xintercept=0)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-15-1.png" width="768" style="display: block; margin: auto;" />
+### ROC Plot and AUC</p>
+<pre class="r"><code>plot &lt;- ggplot(diet2.0) + geom_roc(aes(d=Platform, m=energy + y), n.cuts=0)
+plot</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-16-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>calc_auc(plot)</code></pre>
+<pre><code>##   PANEL group       AUC
+## 1     1    -1 0.8213028</code></pre>
+<p><em>The AUC of the plot was found to be 0.8213028, this AUC is good, meaning that it is able to predict whether a person has chd or not from energy and y fairly well. </em></p>
+</div>
+</div>
+<div id="broader-logistic-regression-modeling" class="section level2">
+<h2>6. Broader Logistic Regression Modeling</h2>
+<div id="logistic-regression-and-in-sample-classification-diagnostics" class="section level3">
+<h3>Logistic Regression and In-Sample Classification Diagnostics</h3>
+<pre class="r"><code>diet2.0_fit &lt;- glm(chd~ job + height + weight + fat + fibre + energy.grp, data=diet2.0, family=binomial(link=&quot;logit&quot;))
+probabilityy &lt;- predict(diet2.0_fit, type=&quot;response&quot;)
+class_diag(probabilityy,diet2.0$chd)</code></pre>
+<pre><code>##         acc       sens      spec       ppv       auc
+## 1 0.8689024 0.04545455 0.9964789 0.6666667 0.7305538</code></pre>
+<p><em>The accuracy for the model was found to be 0.8689024; this is the proportion of correctly classified cases. The sensitivity was 0.04545455; this is the proportion of no event chd cases correctly classified. The specificity is 0.9964789 ; this is the proportion of chd event cases correctly classified. The precision was 0.6666667; this is the proportion of classified no event chd cases that are no event chd cases. The AUC was 0.7305538; this is the probability that a randomly selected person with chd has a higher predicted probability than a randomly selected person without chd; this AUC is classified as fair.</em></p>
+</div>
+<div id="fold-cv-and-out-of-sample-classification-diagnostics" class="section level3">
+<h3>10-Fold CV and Out-Of-Sample Classification diagnostics</h3>
+<pre class="r"><code>set.seed(1234)
+k=10
+
+data &lt;- diet2.0[sample(nrow(diet2.0)),]
+folds &lt;- cut(seq(1:nrow(diet2.0)), breaks=k,labels=F)
+
+diags &lt;- NULL
+for(i in 1:k){
+  train &lt;- data[folds!=i,]
+  test&lt;- data[folds==i,]
+  truth&lt;- test$chd
+  fit &lt;- glm(chd~ job + height + weight + fat + fibre + energy.grp, data=train, family=binomial(link=&quot;logit&quot;))
+  probs &lt;- predict(fit, newdata=test, type=&quot;response&quot;)
+  diags &lt;- rbind(diags,class_diag(probs,truth))
+}
+summarize_all(diags,mean)</code></pre>
+<pre><code>##         acc       sens      spec ppv       auc
+## 1 0.8685606 0.05833333 0.9962963 NaN 0.6805466</code></pre>
+<p><em>The accuracy of this model decreased slightly to 0.8685606 but not a significant amount. The sensitivity increased to 0.05833333 but is still very low. The specificity also remained relatively the same at 0.9962963. The major difference in this model compared to the last is that this model has a lower AUC of 0.6805466 and is now classified as poor. Another difference is that the precision was not calculated.</em></p>
+</div>
+<div id="lasso" class="section level3">
+<h3>LASSO</h3>
+<pre class="r"><code>diet4.0 &lt;- diet2.0 %&gt;% select(chd, job, height, weight, fat, fibre, energy.grp )
+y &lt;- as.matrix(diet4.0$chd)
+x &lt;- model.matrix(chd~., data=diet4.0)[, -1]
+
+cv &lt;- cv.glmnet(x,y,family=&quot;binomial&quot;)
+lasso &lt;- glmnet(x,y, family=&quot;binomial&quot;, lambda=cv$lambda.1se)
+coef(lasso)</code></pre>
+<pre><code>## 8 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                              s0
+## (Intercept)           -1.864785
+## jobConductor           0.000000
+## jobBank worker         .       
+## height                 .       
+## weight                 .       
+## fat                    .       
+## fibre                  .       
+## energy.grp&gt;2750 KCals  .</code></pre>
+<p><em>After the LASSO none of the variables were identified as being important for prediction.</em></p>
+</div>
+<div id="fold-cv-but-with-lasso-variables" class="section level3">
+<h3>10-Fold CV but with Lasso Variables?</h3>
+<pre class="r"><code>set.seed(1234)
+k=10
+
+data &lt;- diet2.0[sample(nrow(diet2.0)),]
+folds &lt;- cut(seq(1:nrow(diet2.0)), breaks=k,labels=F)
+
+diags &lt;- NULL
+for(i in 1:k){
+  train &lt;- data[folds!=i,]
+  test&lt;- data[folds==i,]
+  truth&lt;- test$chd
+  fit &lt;- glm(chd~ job + height + weight + fat + fibre + energy.grp, data=train, family=binomial(link=&quot;logit&quot;))
+  probs &lt;- predict(fit, newdata=test, type=&quot;response&quot;)
+  diags &lt;- rbind(diags,class_diag(probs,truth))
+}
+summarize_all(diags,mean)</code></pre>
+<pre><code>##         acc       sens      spec ppv       auc
+## 1 0.8685606 0.05833333 0.9962963 NaN 0.6805466</code></pre>
+<pre class="r"><code>gradsch&lt;- read.csv(&quot;https://stats.idre.ucla.edu/stat/data/binary.csv&quot;)</code></pre>
+<p><em>If variables had been selected from the lasso, only those variables would have been used as predictors in this model. </em></p>
+</div>
+</div>
+
+            
+        <hr>         <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div> 
+            </div>
+          </div>
+
+   <hr>  <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div> 
+        </div>
+      </div>
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="../../js/docs.min.js"></script>
+<script src="../../js/main.js"></script>
+
+<script src="../../js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>

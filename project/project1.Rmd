@@ -1,0 +1,203 @@
+---
+title: 'Project 1: Exploratory Data Analysis'
+author: "SDS348"
+date: ''
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+  pdf_document:
+    toc: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, fig.align = "center", warning = F, message = F,
+tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
+```
+
+
+## 0. Introduction 
+
+Three datasets were used for this project. Two datasets are both from a Global Burden of Disease study. The data titled "deathprop," is the probability of death based off of region and year including shocks. Shocks are estimates include deaths from natural disasters, wars, etc. The "noshocks," dataset includes the death probability estimates without deaths from these shocks. Both of these datasets include variables on year, state, value, upper, and lower. The upper and lower variables designate an upper and lower probability of death, similar to how error bars on a graph would work. The "unemploy," dataset contains unemployment rates for states over time and also has a variable for the region is state is located in. The main values here of probability of death are caluclated based off of many other variables for each region assessed by the Global Burden of Disease. This data is interesting to me because health data can have a large number of correlations with other factors such as unemployment rate. As someone who wants to go into the health field, seeing this trends is important. I predict a postive correlation with unemployment rates and probability of death. 
+
+## 1. Tidying: Rearranging Wide/Long
+
+The dataset unemploy was pivoted longer in order to get the years into a column, and the column unemployment_rate was created from this pivot. This was done in order to match the other two datasets "noshocks," and "deathprop," that had year as a column. 
+
+```{R}
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(datasets)
+library(kableExtra)
+noshocks <- read_excel("noshocks.xlsx")
+unemploy <- read_excel("unemploy.xlsx")
+deathprop <- read_excel("deathprop.xlsx")
+unemploy2 <- unemploy %>% pivot_longer(c("2011":"2021"), names_to="year", values_to="unemployment_rate")
+Noshocks <- noshocks %>% select(location.no= location_name, year.no= year_id,val.no=val, upper.no=upper, lower.no=lower)
+```
+## 2. Joining/Merging
+
+A full join was done on all three datasets, this was chosen because all columns were wanted from both datasets. This caused the problem of NAs, however this was fixed using the na.omit() function. The rows that were ommitted were from the dataset "unemploy" in which the years 2020 and 2021 were used, however these years did not appear in the other two data sets. 
+
+```{R}
+unemploy2$year <- as.numeric(as.character(unemploy2$year))
+datas <- full_join(unemploy2, deathprop, by=c("year"="year_id", "State"="location_name"))
+Datas <- full_join(datas, Noshocks, by=c("year"="year.no", "State"="location.no"))
+Datas <- Datas %>% na.omit()
+```
+## 3. Wrangling
+
+
+#### US Stats 2011-2019
+```{R}
+Datas <- Datas %>% mutate(val.shocks=val-val.no)
+Datas %>% group_by(year) %>% summarize_at(vars(unemployment_rate:val.shocks), mean)%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)%>%
+  scroll_box(width = "100%", height = "200px")
+```
+This above table takes the average of each numeric variable for each state and groups by year. This returns statistics of the entire US.
+
+#### US Stats in the year 2019
+```{R}
+Datas %>% filter(year==2019) %>% summarize_at(vars(unemployment_rate:val.shocks), quantile)%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)%>%
+  scroll_box(width = "100%", height = "200px")
+Datas %>% filter(year== 2019) %>% summarize_at(vars(unemployment_rate:val.shocks), sd)%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+```
+#### Stats by State
+```{R}
+Datas  %>% group_by(State) %>% summarize_at(vars(unemployment_rate:val.shocks), mean)%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)%>%
+  scroll_box(width = "100%", height = "200px")
+Datas %>% group_by(State) %>% summarize(mean_val=mean(val)) %>% arrange(desc(mean_val))%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)%>%
+  scroll_box(width = "100%", height = "200px")
+Datas %>% group_by(State) %>% summarize(mean_val = mean(val))  %>% slice_min(mean_val, n=5)%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)%>%
+  scroll_box(width = "100%", height = "200px")
+Datas %>% group_by(State) %>% summarize(max_unemployment=max(unemployment_rate),max_val=min(val),max_val.no=max(val.no),max_val.shocks=max(val.shocks))%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)%>%
+  scroll_box(width = "100%", height = "200px")
+```
+The tables above show the mean value for each numeric statistic grouped by state. The variable for value of probability of death is shown in the second table in descending order to highlight the stats with the worst values at the top. The states with the best(lowest) 5 values are also highlighted with the "slice_min()" function. 
+
+#### Interesting Data
+```{R}
+Datas %>% filter(year== 2011 | year== 2019)%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)%>%
+  scroll_box(width = "100%", height = "200px")
+
+Datas %>% group_by(State) %>% select(State, val, val.no, val.shocks) %>% summarize_all(mean)%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)%>%
+  scroll_box(width = "100%", height = "200px")
+
+Datas %>% filter(unemployment_rate==min(unemployment_rate)) %>% select (State, year, unemployment_rate)%>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+```
+The above tables higlight data that I found interesting. The First table filters for only the first and last year of the data set and is ordered by state, making it easy to see comparisons over time in each state. The second table shows the values for probability of death grouped and summarized by state. This table has the values with and without shocks as well as the difference between the two. Lastly, CONGRATS to Hawaii for having the record low unemployment rate of any state in any year, at a 2.1 in 2018! 
+
+## 4. Visualizing 
+```{R}
+corMatrix <- Datas %>% select_if(is.numeric) %>% cor(use="pair")
+tidycor <- corMatrix %>% as.data.frame %>% rownames_to_column("var1") %>% pivot_longer(-1, names_to= "var2", values_to="correlation")
+tidycor %>% ggplot(aes(var1,var2,fill=correlation)) + geom_tile() + geom_text(aes(label=round(correlation,2)), color= "black" , size=3) + theme(axis.text.x = element_text(angle=90,hjust=1)) + scale_fill_gradient2(low="dark blue", mid="white", high="dark red")+ggtitle("Correlation Heatmap")
+```
+The above figure is that of a correlational heat map. It is seen that the values of probability of death are close in correlation for the values with and without shock. This signifies that the shock does not change the values significantly. Secondly the year and unemployment rates have a strong negative correlation meaning that as the years increase the unemployment rate drops over time. 
+```{R}
+ggplot(data=Datas,aes(x=year, y=unemployment_rate, color= State))+ 
+ geom_line(method="lm") +  geom_point(color='white')+ theme(legend.position = "none") + labs(title="Unemployment vs. Year", x="Time (year)", y='Unemployment rates') + facet_wrap(~Region) +scale_x_continuous(breaks=seq(2011,2019,2))+ theme()
+```
+The above plot shows unemployment rates vs time and is grouped by region. These plots help to show that the unemplyoment rates have gone down in time regardelss of region but that they have gone down the most in the West region and that the Midwest and the South have seen the least amount of changes. 
+
+```{R}
+ggplot(Datas, aes(State, val,)) + geom_errorbar(aes(ymin = lower, ymax = upper, color=State), stat='summary')+facet_wrap(~Region, scale="free_y",)+geom_point(aes(y=val,color=State),stat='summary') + theme(legend.position = "none")+theme(axis.text.x = element_text(angle=90,hjust=1, size=0.5))+ coord_flip() + theme(axis.text.x=element_text(size=7.1))
+```
+The above plot breaks down the value of probability of death by region. The error bars are fitted to be the upper and lower values found in the data set. Hence, here instead of the error bars showing a probability of error as calculated by R, they show an error probability as calculated by the people who collected this data; this means that the error bars are more suited to this individual case. 
+
+
+## 5. Dimensionality Reduction
+
+```{R}
+library(cluster)
+
+pam_data <- Datas %>% select (unemployment_rate, val)
+sil_width <- vector() 
+for (i in 2:10){
+  pam_fit <- pam(pam_data, k= i) 
+  sil_width[i] <- pam_fit$silinfo$avg.width
+} 
+ggplot() +geom_line(aes(x=1:10, y=sil_width))+ scale_x_continuous(name="k", breaks= 1:10)
+
+pam1 <- Datas %>% select(unemployment_rate, val) %>% 
+  pam(k = 2)
+pamclust = Datas %>% mutate(cluster = as.factor(pam1$clustering))
+pamclust %>% ggplot(aes(unemployment_rate, val, color = cluster)) +
+geom_point()
+
+pamclust %>% group_by(cluster) %>% select(cluster, unemployment_rate, val ) %>% summarize_if(is.numeric, mean, na.rm = T) %>% kbl() %>% kable_styling(bootstrap_options= "striped", full_width= F, position= "center")
+
+pam1$silinfo$avg.width %>% kbl() %>% kable_styling(bootstrap_options = "striped", full_width=F, position ="center")
+
+
+pam_data <- Datas %>% select (unemployment_rate, val.no)
+sil_width <- vector() 
+for (i in 2:10){
+  pam_fit <- pam(pam_data, k= i) 
+  sil_width[i] <- pam_fit$silinfo$avg.width
+} 
+ggplot() +geom_line(aes(x=1:10, y=sil_width))+ scale_x_continuous(name="k", breaks= 1:10)
+
+pam1 <- Datas %>% select(unemployment_rate, val.no) %>% 
+  pam(k = 2)
+pamclust = Datas %>% mutate(cluster = as.factor(pam1$clustering))
+pamclust %>% ggplot(aes(unemployment_rate, val.no, color = cluster)) +
+geom_point()
+
+pamclust %>% group_by(cluster) %>% select(cluster, unemployment_rate, val.no ) %>% summarize_if(is.numeric, mean, na.rm = T) %>% kbl() %>% kable_styling(bootstrap_options= "striped", full_width= F, position= "center")
+
+pam1$silinfo$avg.width %>% kbl() %>% kable_styling(bootstrap_options = "striped", full_width=F, position ="center")
+
+
+pam_data <- Datas %>% select (unemployment_rate, val.shocks)
+sil_width <- vector() 
+for (i in 2:10){
+  pam_fit <- pam(pam_data, k= i) 
+  sil_width[i] <- pam_fit$silinfo$avg.width
+} 
+ggplot() +geom_line(aes(x=1:10, y=sil_width))+ scale_x_continuous(name="k", breaks= 1:10)
+
+pam1 <- Datas %>% select(unemployment_rate, val.shocks) %>% 
+  pam(k = 2)
+pamclust = Datas %>% mutate(cluster = as.factor(pam1$clustering))
+pamclust %>% ggplot(aes(unemployment_rate, val.shocks, color = cluster)) +
+geom_point()
+
+pamclust %>% group_by(cluster) %>% select(cluster, unemployment_rate, val.shocks ) %>% summarize_if(is.numeric, mean, na.rm = T) %>% kbl() %>% kable_styling(bootstrap_options= "striped", full_width= F, position= "center")
+
+pam1$silinfo$avg.width %>% kbl() %>% kable_styling(bootstrap_options = "striped", full_width=F, position ="center")
+```
+Using the val, val.no, and val.shocks variables as compared to the unemployment rates all of these comparisons have 2 clusters and it is clear that there is a defined clusters for each but there is overlap that makes these comparisons not reliable. 
+
+
+Thank you for taking time to read through this project! :)
+
+...
+
+
+
+
+

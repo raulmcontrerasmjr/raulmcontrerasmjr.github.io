@@ -1,0 +1,304 @@
+---
+title: 'Project 2: Modeling, Testing, and Predicting'
+author: 'Raul Contreras rmc3562'
+date: ''
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE,fig.align="center",warning=FALSE,message=FALSE,fig.width=8, fig.height=5, linewidth=60)
+options(tibble.width = 100,width = 100)
+library(tidyverse)
+
+class_diag<-function(probs,truth){
+  
+  tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+
+  if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE) truth<-as.numeric(truth)-1
+  
+  #CALCULATE EXACT AUC
+  ord<-order(probs, decreasing=TRUE)
+  probs <- probs[ord]; truth <- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup<-c(probs[-1]>=probs[-length(probs)], FALSE)
+  TPR<-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1)
+  
+  n <- length(TPR)
+  auc<- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,auc)
+}
+
+library(tidyverse)
+library(dplyr)
+library(lmtest)
+library(plotROC)
+library(sandwich)
+library(ggplot2)
+library(vegan)
+library(rstatix)
+library(glmnet)
+library(readxl)
+```
+
+
+## Introduction of Dataset
+
+*The dataset being used for this project was pulled from the "Epi" package and is called "diet." This dataset contains information on diets and other variables on a total of 337 individuals (this was shortened to 328 do to NAs). Variable y is the number of years at risk for coronary heart disease. Variable job is the individuals occupation and is categorical for either Driver, Conductor, or Bank worker. Variable energy is the total energy intake in kCal per day/100/ Height and weight are measured in cm and kg respectively. The variables fat and fibre are the intakes for each measured in 10g/day. The variable energy.grp groups bu daily energy intake; it is a categorical with the two levels of <=2750 KCal and >2750 KCal. Lastly chd is if the individual has coronary heart disease.*
+
+```{R}
+install.packages("Epi", repos = "http://cran.us.r-project.org")
+library("Epi")
+data(diet)
+diet2.0 <- diet %>% na.omit
+```
+
+## 1. MANOVA Testing
+
+### Assumptions 
+
+*The following tests will investigate assumptions that are to be met in a MANOVA.*
+
+#### Multivariate Normality Assumption
+
+```{R}
+group <- diet2.0$energy.grp
+DVs <- diet2.0 %>% select(y,energy,height,weight,fat,fibre)
+sapply(split(DVs,group), mshapiro_test)
+```
+*Here a a formal test of multivariate normality assumption was done but the null is rejected with the two p values of 1.024356e-06 and 5.464934e-13 for the two groups of "<=2750 KCals" and ">2750 KCals" respectively which means the multivariate normality assumption is not met.*
+
+#### Homogeneity of Covariance
+```{R}
+box_m(DVs, group)
+```
+*A second assumption that was investigated with formal test was that of homogeneity of covariance. The p value was found to be 1.12193e-05 meaning the homogeneity of covariance was not met*
+
+*Additional Assumptions of MANOVA include random samples and independent observations neither of which can be investigated further for the dataset. Overall, the assumptions are hard to meet but we will continue with the MANOVA.*
+
+### Overall MANOVA
+```{R}
+man1<-manova(cbind(y,energy,height,weight,fat,fibre)~energy.grp, data=diet2.0)
+summary(man1)
+```
+
+*A one-way MANOVA was conducted to determine the effect of the energy group (<=2750 KCals or >2750 KCals) on the dependent numeric variables y,energy,height,weight,fat, and fibre. In the MANOVA significant differences were found among the two energy groups for at least one of the dependent variables Pillai trace = 0.60395, pseudo F(6, 321)= 81.583, p < 2.2e-16, thus follow up ANOVAs will be done.*
+
+### Follow-up One-Way ANOVAs
+```{R}
+summary.aov(man1)
+```
+
+*Univariate ANOVAs for each dependent variable were conducted as follow-up tests to the MANOVA, using the Bonferroni method for controlling Type I error rates for multiple comparisons. The univariate ANOVAs for energy, weight, fat, and fibre were also significant, F(1, 326), p < 2.2e-16 and F(1, 326), p = 3.88e-05, and F(1, 326), p < 2.2e-16 and F(1, 326), p = 4.463e-15 respectively.*
+
+### Pair-Wise T Tests
+```{R}
+diet2.0%>%group_by(energy.grp)%>%summarize(mean(energy),mean(weight),mean(fat),mean(fibre))
+pairwise.t.test(diet2.0$energy, diet2.0$energy.grp, p.adj="none")
+pairwise.t.test(diet2.0$weight, diet2.0$energy.grp, p.adj="none")
+pairwise.t.test(diet2.0$fat, diet2.0$energy.grp, p.adj="none")
+pairwise.t.test(diet2.0$fibre, diet2.0$energy.grp, p.adj="none")
+1- 0.95^15
+0.05/15
+```
+
+*Post hoc analysis was performed conducting pairwise comparisons to determine which energy groups  differed in energy, weight, fat, and fibre. Both energy groups were found to differ significantly from each other in terms of energy, weight, fat, and fibre after adjusting for multiple comparisons (bonferroni α=.05/15= 0.00333). A total of 1 MANOVA, 6 ANOVAs, and 8 t tests, so 15 tests in total.*
+
+## 2. Randomization
+
+```{R}
+
+diet3.0 <- diet2.0 %>% filter(energy.grp == "<=2750 KCals" | energy.grp == ">2750 KCals")
+
+rand_dist<-vector()
+
+for(i in 1:5000) {
+  new<-data.frame(height= sample(diet3.0$height),
+                  energy.grp=diet3.0$energy.grp)
+  rand_dist[i]<-mean(new[new$energy.grp=="<=2750 KCals",]$height)-
+              mean(new[new$energy.grp==">2750 KCals",]$height)
+  }
+
+diet3.0%>%group_by(energy.grp)%>%summarize(means=mean(height))%>%summarize(`mean_diff`=diff(means))
+
+mean(rand_dist > 1.289089		 | rand_dist < -1.289089	)
+
+hist(rand_dist,main="",ylab=""); abline(v = c(-1.289089	, 1.289089	),col="red")
+```
+*The null hypothesis for the randomization test is that heights are the same for people who consume <=2750 KCals or >2750 KCals and the alternative hypothesis states that heights are different for people who consume <=2750 KCals or >2750 KCals. The p-value for this model was found to be 0.0678. This means that the difference in heights is not significant between the two kcal consumption groups. The plot visualization shows that the probability of a mean difference of at least 1.289 is is not less than 0.05. Together this means the data is not able to reject the null hypothesis.*
+
+
+## 3. Linear Regression Model
+
+```{R}
+diet2.0$fat_c <- diet2.0$fat - mean(diet2.0$fat)
+fit <- lm(diet2.0$energy ~ diet2.0$fat_c * diet2.0$job)
+summary(fit)
+```
+*This linear regression model uses fat intake and job occupation to predict total energy intake. It was found that for individuals with the occupation Driver with a mean fat, the energy is 28.4186 lower than the mean energy. The model also shows that for every 1 increase in fat intake predicted energy intake is increased by 1.7289 for individuals with the occupation Driver. For Conductors at a mean fat intake the predicted energy is 0.2112 higher as compared to Drivers at a mean fat intake; this was not significant. For Bank workers at a mean fat intake the predicted energy is 0.2429 lower as compared to Drivers at a mean fat intake; this was also not found to be significant. Slope of fat on energy for Conductors is 0.1131 lower than for Drivers; this result was not significant. Slope of fat on energy for Bank workers is 0.2836 lower than for Drivers; this result was found to be significant. The last interpretation of this model is that Multiple R-squared which shows that 71.47 percent of variability can be explaines by the model. *
+
+### Linear Regression Plot
+```{R}
+diet2.0 %>% select(energy, fat_c, job) %>% ggplot(aes(fat_c, energy, color=job)) + geom_point()+geom_smooth(method="lm") + geom_vline(xintercept=mean(diet2.0$fat_c), na.rm=T,lty=2)
+```
+### Assumptions
+```{R}
+resids <- fit$residuals
+fitvals <- fit$fitted.values
+ggplot() + geom_point(aes(fitvals, resids)) + geom_hline(yintercept=0, color="red")
+ks.test(resids, "pnorm", mean=0, sd(resids))
+```
+*The One-sample Kolmogorov-Smirnov test had a p-value of 0.8962, meaning the normailty assumption has been met. Secondly there is no fanning out seen in the graph meaning that homoskedasticity is met.*
+
+### Linear Regression results with RSEs
+
+```{R}
+coeftest(fit, vcoc = vcovHC(fit))
+```
+*The linear regression model with robust standard errors shows that the effects on energy intake once again from job and fat intake. The significance has not changed for any of the results after introducing robust standard errors.*
+
+## 4. Linear Regression Modeling with BSEs
+```{R}
+samp_distn <- replicate(5000, {
+  boot_dat <- sample_frac(diet2.0,replace=T)
+  fit2.0 <-lm(energy ~ fat_c * job, data = boot_dat)
+  coef(fit2.0)
+})
+samp_distn %>% t %>% as.data.frame %>% summarize_all(sd)
+```
+*After rerunning the regression model with bootstrapped standard errors, it was found that fat_c, jobBank worker, fat_c:jobConductor decreased compared to the original SEs and jobconductor and fat_c:jobBank worker both increased compared to the original SEs. This means that the p-values for jobconductor and fat_c:jobBank worker also increased.*
+
+*After rerunning the regression model with bootstrapped standard errors, it was found that fat_c, jobBank worker, fat_c:jobConductor decreased compared to the RSE SEs and jobconductor and fat_c:jobBank worker both increased compared to the RSE SEs. This means that the p-values for jobconductor and fat_c:jobBank worker also increased.*
+
+## 5. Logistic Regression to predict binary variable
+
+### Logistic Regression
+```{R}
+Logregression <- glm(chd ~ y + energy, data=diet2.0, family=binomial(link="logit"))
+exp(coef(Logregression))
+```
+*This model shows that for a 1 increase in y controlling for energy the odds of chd being a chd event is -0.2731 while a 1 increase in energy controlling for y the odds of chd being a chd event is -0.07472202. This data shows that y has a greater effect on the odds of a chd event than energy does.*
+
+### Confusion Matrix and Accuracy, Sensitivity, and Specificity 
+```{R}
+probability <- predict(Logregression, type= "response")
+class_diag(probability, diet2.0$chd)
+table(predict = as.numeric(probability > 0.5 ), truth = diet2.0$chd) %>% addmargins
+```
+
+*The accuracy for the model was found to be 0.8841463; this is the proportion of correctly classified cases. The sensitivity was 0.3863636; this is the proportion of no event chd cases correctly classified. The specificity is 0.9612676; this is the proportion of chd event cases correctly classified. The precision was 0.6071429; this is the proportion of classified no event chd cases that are no event chd cases. The AUC was 0.8516325; this is the probability that a randomly selected person with chd has a higher predicted probability than a randomly selected person without chd; this AUC is classified as good.*
+
+### Density Plot
+```{R}
+diet2.0 <- diet2.0 %>% mutate(Platform=ifelse(chd==1, "CHD event", "no event"))
+diet2.0$logit <- predict(Logregression, type= "link")
+diet2.0 %>% mutate(Platform=as.factor(Platform)) %>% ggplot() + geom_density(aes(logit, fill=Platform), alpha=0.4) + theme(legend.position=c(0.85, 0.85)) + xlab("logit(log-odds)") +geom_vline(xintercept=0)
+```
+### ROC Plot and AUC 
+```{R}
+plot <- ggplot(diet2.0) + geom_roc(aes(d=Platform, m=energy + y), n.cuts=0)
+plot
+calc_auc(plot)
+```
+*The AUC of the plot was found to be 0.8213028, this AUC is good, meaning that it is able to predict whether a person has chd or not from energy and y fairly well. *
+
+## 6. Broader Logistic Regression Modeling 
+
+### Logistic Regression and In-Sample Classification Diagnostics
+```{R}
+diet2.0_fit <- glm(chd~ job + height + weight + fat + fibre + energy.grp, data=diet2.0, family=binomial(link="logit"))
+probabilityy <- predict(diet2.0_fit, type="response")
+class_diag(probabilityy,diet2.0$chd)
+```
+*The accuracy for the model was found to be 0.8689024; this is the proportion of correctly classified cases. The sensitivity was 0.04545455; this is the proportion of no event chd cases correctly classified. The specificity is 0.9964789	; this is the proportion of chd event cases correctly classified. The precision was 0.6666667; this is the proportion of classified no event chd cases that are no event chd cases. The AUC was 0.7305538; this is the probability that a randomly selected person with chd has a higher predicted probability than a randomly selected person without chd; this AUC is classified as fair.*
+
+### 10-Fold CV and Out-Of-Sample Classification diagnostics 
+```{R}
+set.seed(1234)
+k=10
+
+data <- diet2.0[sample(nrow(diet2.0)),]
+folds <- cut(seq(1:nrow(diet2.0)), breaks=k,labels=F)
+
+diags <- NULL
+for(i in 1:k){
+  train <- data[folds!=i,]
+  test<- data[folds==i,]
+  truth<- test$chd
+  fit <- glm(chd~ job + height + weight + fat + fibre + energy.grp, data=train, family=binomial(link="logit"))
+  probs <- predict(fit, newdata=test, type="response")
+  diags <- rbind(diags,class_diag(probs,truth))
+}
+summarize_all(diags,mean)
+```
+*The accuracy of this model decreased slightly to 0.8685606	but not a significant amount. The sensitivity increased to 0.05833333	but is still very low. The specificity also remained relatively the same at 0.9962963. The major difference in this model compared to the last is that this model has a lower AUC of 0.6805466 and is now classified as poor. Another difference is that the precision was not calculated.*
+
+### LASSO
+
+```{R}
+diet4.0 <- diet2.0 %>% select(chd, job, height, weight, fat, fibre, energy.grp )
+y <- as.matrix(diet4.0$chd)
+x <- model.matrix(chd~., data=diet4.0)[, -1]
+
+cv <- cv.glmnet(x,y,family="binomial")
+lasso <- glmnet(x,y, family="binomial", lambda=cv$lambda.1se)
+coef(lasso)
+```
+
+*After the LASSO none of the variables were identified as being important for prediction.*
+
+### 10-Fold CV but with Lasso Variables?
+
+```{R}
+set.seed(1234)
+k=10
+
+data <- diet2.0[sample(nrow(diet2.0)),]
+folds <- cut(seq(1:nrow(diet2.0)), breaks=k,labels=F)
+
+diags <- NULL
+for(i in 1:k){
+  train <- data[folds!=i,]
+  test<- data[folds==i,]
+  truth<- test$chd
+  fit <- glm(chd~ job + height + weight + fat + fibre + energy.grp, data=train, family=binomial(link="logit"))
+  probs <- predict(fit, newdata=test, type="response")
+  diags <- rbind(diags,class_diag(probs,truth))
+}
+summarize_all(diags,mean)
+
+gradsch<- read.csv("https://stats.idre.ucla.edu/stat/data/binary.csv")
+```
+*If variables had been selected from the lasso, only those variables would have been used as predictors in this model. *
+
+
+
+
+
+
+

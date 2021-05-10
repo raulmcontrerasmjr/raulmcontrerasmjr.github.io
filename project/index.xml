@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Projects on Chris Turner</title>
+    <link>/project/</link>
+    <description>Recent content in Projects on Chris Turner</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-US</language><atom:link href="/project/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Project 1: Exploratory Data Analysis</title>
+      <link>/project/project1/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project/project1/</guid>
+      <description>0. Introduction Three datasets were used for this project. Two datasets are both from a Global Burden of Disease study. The data titled “deathprop,” is the probability of death based off of region and year including shocks. Shocks are estimates include deaths from natural disasters, wars, etc. The “noshocks,” dataset includes the death probability estimates without deaths from these shocks. Both of these datasets include variables on year, state, value, upper, and lower.</description>
+    </item>
+    
+    <item>
+      <title>Project 2: Modeling, Testing, and Predicting</title>
+      <link>/project/project2/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project/project2/</guid>
+      <description>Introduction of Dataset The dataset being used for this project was pulled from the “Epi” package and is called “diet.” This dataset contains information on diets and other variables on a total of 337 individuals (this was shortened to 328 do to NAs). Variable y is the number of years at risk for coronary heart disease. Variable job is the individuals occupation and is categorical for either Driver, Conductor, or Bank worker.</description>
+    </item>
+    
+  </channel>
+</rss>

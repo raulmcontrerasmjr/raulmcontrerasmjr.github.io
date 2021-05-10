@@ -13,9 +13,9 @@
       <pubDate>Thu, 23 Jul 2015 21:13:14 -0500</pubDate>
       
       <guid>/post/2015/07/23/hello-r-markdown/</guid>
-      <description>R Markdown This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see http://rmarkdown.rstudio.com.
+      <description>Pride First Gen I will be graduating this may with a BSA in biology as a first generation student! Below I will be using the reticulate package to code in both R and python.
 You can embed an R code chunk like this:
-summary(cars) ## speed dist ## Min. : 4.0 Min. : 2.00 ## 1st Qu.:12.0 1st Qu.: 26.00 ## Median :15.0 Median : 36.00 ## Mean :15.4 Mean : 42.98 ## 3rd Qu.</description>
+library(reticulate) This_year_was_awful &amp;lt;- &amp;quot;I am a&amp;quot; Senior_year_was &amp;lt;- &amp;quot;I am so very greatful to&amp;quot; I_cannot_believe_I_surived = &amp;quot;proud first generation student!&amp;quot; absolutely_insane = &amp;quot;all my friends and family who helped me along the way!</description>
     </item>
     
   </channel>
